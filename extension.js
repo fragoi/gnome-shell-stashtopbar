@@ -37,8 +37,6 @@ class Extension {
     this._hoverActivation = new HoverActivation(this._offcanvas, this._activator);
     this._overviewActivation = new OverviewActivation(Main.overview, this._activator);
 
-    this._offcanvas.setActive(false);
-
     this._otherActivations = [];
     for (const p in panel.statusArea) {
       const actor = panel.statusArea[p];
@@ -56,6 +54,8 @@ class Extension {
       from_edge: Clutter.SnapEdge.TOP,
       to_edge: Clutter.SnapEdge.BOTTOM
     }));
+
+    this._offcanvas.setActive(false);
 
     Main.stashTopBar = this;
     log(`${NAME} enabled`);
@@ -105,14 +105,6 @@ const Offcanvas = GObject.registerClass(
 
         this.y += this.translation_y - this._translation_y;
         this.translation_y = this._translation_y;
-
-        //        if (this._active) {
-        //          Main.uiGroup.remove_style_class_name('hidetopbar');
-        //          Main.uiGroup.add_style_class_name('showtopbar');
-        //        } else {
-        //          Main.uiGroup.remove_style_class_name('showtopbar');
-        //          Main.uiGroup.add_style_class_name('hidetopbar');
-        //        }
       });
       //      this.connect('allocation-changed', () => log('Allocation changed (offcanvas)'));
     }
@@ -143,6 +135,7 @@ const Offcanvas = GObject.registerClass(
     _slide(value, delay) {
       if (!this._animating) {
         this._animating = true;
+        //        this._y = this.translation_y;
         this._y = this._translation_y = this.translation_y;
         //        this._y = this.y;
       }
@@ -150,6 +143,7 @@ const Offcanvas = GObject.registerClass(
       this.save_easing_state();
       if (delay)
         this.set_easing_delay(delay);
+      //      this.set_easing_duration(5000);
       this.translation_y = this._y;
       //      this.y = this._y;
       this.restore_easing_state();
@@ -247,24 +241,18 @@ class HoverTracker {
   }
 
   _onEnter(_actor, _event) {
+    _log && _log('Hover enter');
     this._setHover(true);
   }
 
   _onLeave(actor, event) {
-    if (this._isInside(actor, event)) {
+    const related = event.get_related();
+    _log && _log(`Hover leave, related: ${related}`);
+    if (related && actor.contains(related)) {
       return;
     }
+    _log && _log('Hover left');
     this._setHover(false);
-  }
-
-  _isInside(actor, event) {
-    const [x, y] = event.get_coords();
-    const [ax, ay] = actor.get_transformed_position();
-    const [aw, ah] = actor.get_transformed_size();
-    return x >= ax
-      && y >= ay
-      && x < ax + aw
-      && y < ay + ah;
   }
 }
 
@@ -302,8 +290,9 @@ class PressureBarrier {
     }
     this._pressure += this._getDistance(event);
     if (this._pressure >= this._threshold) {
-      _log && _log(`Trigger, pressure: ${this._pressure}` +
-        `, time: ${event.time + this._timeout - this._expire}`);
+      _log && _log(`Barrier trigger, pressure: ${this._pressure}, time: ${(
+        event.time + this._timeout - this._expire
+      )}`);
       this._hit = true;
       this.onHit();
     }
@@ -314,7 +303,7 @@ class PressureBarrier {
   }
 
   _onBarrierLeft(_barrier, _event) {
-    _log && _log('Left');
+    _log && _log('Barrier left');
     this._expire = 0;
     this._pressure = 0;
     this._hit = false;
