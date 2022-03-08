@@ -282,11 +282,9 @@ class PressureBarrier {
     if (this._hit) {
       return;
     }
-    if (!this._expire) {
-      this._expire = event.time + this._timeout;
-    }
     if (event.time >= this._expire) {
-      return;
+      this._expire = event.time + this._timeout;
+      this._pressure = 0;
     }
     this._pressure += this._getDistance(event);
     if (this._pressure >= this._threshold) {
