@@ -286,7 +286,9 @@ class PressureBarrier {
       this._expire = event.time + this._timeout;
       this._pressure = 0;
     }
-    this._pressure += this._getDistance(event);
+    const across = this._distanceAcross(event);
+    const along = this._distanceAlong(event);
+    this._pressure += along ? across / along : across;
     if (this._pressure >= this._threshold) {
       _log && _log(`Barrier trigger, pressure: ${this._pressure}, time: ${(
         event.time + this._timeout - this._expire
@@ -296,8 +298,12 @@ class PressureBarrier {
     }
   }
 
-  _getDistance(event) {
+  _distanceAcross(event) {
     return Math.abs(this._horizontal ? event.dy : event.dx);
+  }
+
+  _distanceAlong(event) {
+    return Math.abs(this._horizontal ? event.dx : event.dy);
   }
 
   _onBarrierLeft(_barrier, _event) {
