@@ -473,6 +473,70 @@ class MessageTrayRelayout {
   }
 }
 
+const CanvasConstraint = GObject.registerClass(
+  class CanvasConstraint extends Clutter.Constraint {
+    _init(talloc) {
+      super._init();
+      this._talloc = talloc;
+      this._changedId = talloc.connect(
+        'allocation-changed',
+        this._queueRelayout.bind(this)
+      );
+    }
+
+    vfunc_dispose() {
+      this._talloc.disconnect(this._changedId);
+      super.vfunc_dispose();
+    }
+
+    vfunc_update_allocation(_actor, allocation) {
+      const { x1: ax1, y1: ay1, x2: ax2, y2: ay2 } = allocation;
+      const w = ax2 - ax1;
+      const h = ay2 - ay1;
+      if (!w || !h) {
+        return;
+      }
+
+      const { x1: tx1, y1: ty1, x2: tx2, y2: ty2 } = this._talloc;
+      /* relative points */
+      const rx1 = (tx1 - ax1) / w;
+      const ry1 = (ty1 - ay1) / h;
+      const rx2 = (tx2 - ax1) / w;
+      const ry2 = (ty2 - ay1) / h;
+
+      const rw = rx2 - rx1;
+      const rh = ry2 - ry1;
+      /* horizontal */
+      if (rw > rh) {
+        /* top */
+        if (ry2 < 0.3) {
+          allocation.y1 = Math.max(ay1, ty2);
+        }
+        /* bottom */
+        else if (ry1 > 0.7) {
+          allocation.y2 = Math.min(ay2, ty1);
+        }
+      }
+      /* vertical */
+      else if (rw < rh) {
+        /* left */
+        if (rx2 < 0.3) {
+          allocation.x1 = Math.max(ax1, tx2);
+        }
+        /* right */
+        else if (rx1 > 0.7) {
+          allocation.x2 = Math.min(ax2, tx1);
+        }
+      }
+    }
+
+    _queueRelayout() {
+      const actor = this.get_actor();
+      actor && actor.queue_relayout();
+    }
+  }
+);
+
 const FullscreenTrap_TRACKED = Symbol('tracked');
 
 /**
