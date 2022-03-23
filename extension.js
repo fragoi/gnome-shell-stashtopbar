@@ -25,16 +25,18 @@ class Extension {
 
     this._fullscreenTrap = new FullscreenTrap(panelBox);
 
-    this._offcanvas = new Offcanvas();
+    this._offcanvas = new Clutter.Actor({ reactive: true });
 
     Main.layoutManager.addChrome(this._offcanvas);
 
     panelBox.remove_child(panel);
     this._offcanvas.add_child(panel);
 
+    this._animation = new OffcanvasAnimation(this._offcanvas);
+
     this._activator = new Activator();
     this._activator.onActiveChanged = () => {
-      this._offcanvas.setActive(this._activator.active);
+      this._animation.setActive(this._activator.active);
     };
 
     this._hoverActivation = new HoverActivation(this._offcanvas, this._activator);
@@ -58,7 +60,7 @@ class Extension {
       to_edge: Clutter.SnapEdge.BOTTOM
     }));
 
-    this._offcanvas.setActive(false);
+    this._animation.setActive(false);
 
     Main.stashTopBar = this;
     log(`${NAME} enabled`);
@@ -87,6 +89,9 @@ class Extension {
 
     Main.layoutManager.removeChrome(this._offcanvas);
 
+    this._animation.destroy();
+    this._animation = null;
+
     this._offcanvas.destroy();
     this._offcanvas = null;
 
@@ -98,64 +103,64 @@ class Extension {
   }
 }
 
-const Offcanvas = GObject.registerClass(
-  class Offcanvas extends Clutter.Actor {
-    _init() {
-      super._init({
-        reactive: true
-      });
-      this._active = true;
+class OffcanvasAnimation {
+  constructor(actor) {
+    this._actor = actor;
+    this._active = true;
+    this._animating = false;
+
+    this._tcId = actor.connect('transitions-completed', () => {
       this._animating = false;
-      this.connect('transitions-completed', () => {
-        this._animating = false;
 
-        this.y += this.translation_y - this._translation_y;
-        this.translation_y = this._translation_y;
-      });
-      //      this.connect('allocation-changed', () => log('Allocation changed (offcanvas)'));
-    }
+      actor.y += actor.translation_y - this._translation_y;
+      actor.translation_y = this._translation_y;
+    });
+  }
 
-    get active() {
-      return this._active;
-    }
+  destroy() {
+    this._actor.disconnect(this._tcId);
+  }
 
-    setActive(value) {
-      if (this._active !== value) {
-        this._active = value;
-        if (value) {
-          this._activate();
-        } else {
-          this._deactivate();
-        }
+  get active() {
+    return this._active;
+  }
+
+  setActive(value) {
+    if (this._active !== value) {
+      this._active = value;
+      if (value) {
+        this._activate();
+      } else {
+        this._deactivate();
       }
-    }
-
-    _activate() {
-      this._slide(this.height);
-    }
-
-    _deactivate() {
-      this._slide(-this.height, 200);
-    }
-
-    _slide(value, delay) {
-      if (!this._animating) {
-        this._animating = true;
-        //        this._y = this.translation_y;
-        this._y = this._translation_y = this.translation_y;
-        //        this._y = this.y;
-      }
-      this._y += value;
-      this.save_easing_state();
-      if (delay)
-        this.set_easing_delay(delay);
-      //      this.set_easing_duration(5000);
-      this.translation_y = this._y;
-      //      this.y = this._y;
-      this.restore_easing_state();
     }
   }
-);
+
+  _activate() {
+    this._slide(this._actor.height);
+  }
+
+  _deactivate() {
+    this._slide(-this._actor.height, 200);
+  }
+
+  _slide(value, delay) {
+    if (!this._animating) {
+      this._animating = true;
+      //        this._y = this._actor.translation_y;
+      this._y = this._translation_y = this._actor.translation_y;
+      //        this._y = this._actor.y;
+    }
+    this._y += value;
+    this._actor.save_easing_state();
+    if (delay)
+      this._actor.set_easing_delay(delay);
+    //    this._actor.set_easing_duration(3000);
+    this._actor.translation_y = this._y;
+    //      this._actor.y = this._y;
+    this._actor.restore_easing_state();
+  }
+}
 
 class Activator {
   constructor() {
