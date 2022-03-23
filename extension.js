@@ -1,6 +1,7 @@
 'use strict';
 
 const { GObject, Clutter, Meta } = imports.gi;
+const Signals = imports.signals;
 const Main = imports.ui.main;
 
 const NAME = 'Stash Top Bar';
@@ -148,6 +149,71 @@ class OffcanvasAnimation {
     this._actor.restore_easing_state();
   }
 }
+
+class TransformedAllocation {
+  constructor(actor) {
+    this._actor = actor;
+    this._allocation = { x1: 0, y1: 0, x2: 0, y2: 0 };
+    this._translation = { x1: 0, y1: 0, x2: 0, y2: 0 };
+
+    this._allocationChangedId = actor.connect('notify::allocation', () => {
+      this._updateAllocation();
+    });
+
+    if (actor.has_allocation()) {
+      this._updateAllocation();
+    }
+  }
+
+  destroy() {
+    this._actor.disconnect(this._allocationChangedId);
+  }
+
+  get x1() {
+    return this._allocation.x1 + this._translation.x1;
+  }
+
+  get y1() {
+    return this._allocation.y1 + this._translation.y1;
+  }
+
+  get x2() {
+    return this._allocation.x2 + this._translation.x2;
+  }
+
+  get y2() {
+    return this._allocation.y2 + this._translation.y2;
+  }
+
+  setTranslation(translation) {
+    if (this._setValues(this._translation, translation)) {
+      this._allocationChanged();
+    }
+  }
+
+  _updateAllocation() {
+    const allocation = this._actor.get_allocation_box();
+    if (this._setValues(this._allocation, allocation)) {
+      this._allocationChanged();
+    }
+  }
+
+  _setValues(object, values) {
+    let changed = false;
+    for (const p in object) {
+      if (p in values && object[p] !== values[p]) {
+        object[p] = values[p];
+        changed = true;
+      }
+    }
+    return changed;
+  }
+
+  _allocationChanged() {
+    this.emit('allocation-changed');
+  }
+}
+Signals.addSignalMethods(TransformedAllocation.prototype);
 
 class Activator {
   constructor() {
