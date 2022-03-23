@@ -33,8 +33,9 @@ class Extension {
     this._offcanvas.add_child(panel);
 
     this._activator = new Activator();
-    this._activator.onActivate = () => this._offcanvas.setActive(true);
-    this._activator.onDeactivate = () => this._offcanvas.setActive(false);
+    this._activator.onActiveChanged = () => {
+      this._offcanvas.setActive(this._activator.active);
+    };
 
     this._hoverActivation = new HoverActivation(this._offcanvas, this._activator);
     this._overviewActivation = new OverviewActivation(Main.overview, this._activator);
@@ -161,29 +162,27 @@ class Activator {
     this._flags = 0;
   }
 
-  activate(flags) {
-    const pre = this._flags;
-    this._flags |= flags;
-    if (!pre && this._flags) {
-      this.onActivate();
-      return true;
-    }
-    return false;
+  get active() {
+    return !!this._flags;
   }
 
-  onActivate() { }
+  onActiveChanged() { }
+
+  activate(flags) {
+    this._setFlags(this._flags | flags);
+  }
 
   deactivate(flags) {
-    const pre = this._flags;
-    this._flags &= ~flags;
-    if (pre && !this._flags) {
-      this.onDeactivate();
-      return true;
-    }
-    return false;
+    this._setFlags(this._flags & ~flags);
   }
 
-  onDeactivate() { }
+  _setFlags(flags) {
+    const pre = this._flags;
+    this._flags = flags;
+    if (!!pre !== !!flags) {
+      this.onActiveChanged();
+    }
+  }
 }
 
 class HoverActivation {
