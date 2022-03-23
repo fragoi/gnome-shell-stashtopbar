@@ -215,8 +215,8 @@ class HoverActivation {
   }
 
   destroy() {
-    this._hoverTracker.destroy();
     this._pressureBarrier.destroy();
+    this._hoverTracker.destroy();
     this._barrier.destroy();
   }
 }
@@ -249,17 +249,14 @@ class HoverTracker {
   }
 
   _onEnter(_actor, _event) {
-    _log && _log('Hover enter');
     this._setHover(true);
   }
 
   _onLeave(actor, event) {
     const related = event.get_related();
-    _log && _log(`Hover leave, related: ${related}`);
     if (related && actor.contains(related)) {
       return;
     }
-    _log && _log('Hover left');
     this._setHover(false);
   }
 }
