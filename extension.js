@@ -288,7 +288,7 @@ class PressureBarrier {
     }
     const across = this._distanceAcross(event);
     const along = this._distanceAlong(event);
-    this._pressure += along ? across / along : across;
+    this._pressure += along > 1 ? across / along : across;
     if (this._pressure >= this._threshold) {
       _log && _log(`Barrier trigger, pressure: ${this._pressure}, time: ${(
         event.time + this._timeout - this._expire
