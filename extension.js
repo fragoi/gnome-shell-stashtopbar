@@ -42,13 +42,13 @@ class Extension {
     this._hoverActivation = new HoverActivation(this._offcanvas, this._activator);
     this._overviewActivation = new OverviewActivation(Main.overview, this._activator);
 
-    this._otherActivations = [];
+    this._destroyables = [];
     for (const p in panel.statusArea) {
       const actor = panel.statusArea[p];
-      this._otherActivations.push(new KeyFocusActivation(actor, this._activator));
+      this._destroyables.push(new KeyFocusActivation(actor, this._activator));
       if (actor.menu) {
-        this._otherActivations.push(new MenuActivation(actor.menu, this._activator));
-        this._otherActivations.push(new MenuRelayout(actor.menu, this._offcanvas));
+        this._destroyables.push(new MenuActivation(actor.menu, this._activator));
+        this._destroyables.push(new MenuRelayout(this._offcanvas, actor.menu));
       }
     }
 
@@ -71,10 +71,8 @@ class Extension {
 
     Main.messageTray.remove_constraint_by_name('below-offcanvas');
 
-    for (const a of this._otherActivations) {
-      a.destroy();
-    }
-    this._otherActivations = null;
+    this._destroyables.reverse().forEach(e => e.destroy());
+    this._destroyables = null;
 
     this._overviewActivation.destroy();
     this._overviewActivation = null;
@@ -371,7 +369,7 @@ class MenuActivation {
 }
 
 class MenuRelayout {
-  constructor(menu, actor) {
+  constructor(actor, menu) {
     const menuRelayout = () => {
       if (menu.isOpen && menu.actor) {
         menu.actor.queue_relayout();
