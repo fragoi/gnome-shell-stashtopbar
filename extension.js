@@ -52,12 +52,7 @@ class Extension {
       }
     }
 
-    Main.messageTray.add_constraint(new Clutter.SnapConstraint({
-      name: 'below-offcanvas',
-      source: this._offcanvas,
-      from_edge: Clutter.SnapEdge.TOP,
-      to_edge: Clutter.SnapEdge.BOTTOM
-    }));
+    this._destroyables.push(new MessageTrayRelayout(this._offcanvas, Main.messageTray));
 
     this._animation.setActive(false);
 
@@ -68,8 +63,6 @@ class Extension {
   disable() {
     const panel = Main.panel;
     const panelBox = Main.layoutManager.panelBox;
-
-    Main.messageTray.remove_constraint_by_name('below-offcanvas');
 
     this._destroyables.reverse().forEach(e => e.destroy());
     this._destroyables = null;
@@ -383,6 +376,28 @@ class MenuRelayout {
   destroy() {
     this._actor.disconnect(this._allocationId);
     this._actor.disconnect(this._transitionId);
+  }
+}
+
+class MessageTrayRelayout {
+  constructor(actor, messageTray) {
+    const constraint = new Clutter.SnapConstraint({
+      source: actor,
+      from_edge: Clutter.SnapEdge.TOP,
+      to_edge: Clutter.SnapEdge.BOTTOM
+    });
+    this._actor = actor;
+    this._messageTray = messageTray;
+    this._constraint = constraint;
+    this._transitionId = actor.connect('notify::translation-y', () => {
+      constraint.set_offset(actor.translation_y);
+    });
+    messageTray.add_constraint(constraint);
+  }
+
+  destroy() {
+    this._actor.disconnect(this._transitionId);
+    this._messageTray.remove_constraint(this._constraint);
   }
 }
 
