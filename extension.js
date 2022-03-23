@@ -23,6 +23,8 @@ class Extension {
     const panel = Main.panel;
     const panelBox = Main.layoutManager.panelBox;
 
+    this._fullscreenTrap = new FullscreenTrap(panelBox);
+
     this._offcanvas = new Offcanvas();
 
     Main.layoutManager.addChrome(this._offcanvas);
@@ -86,6 +88,9 @@ class Extension {
 
     this._offcanvas.destroy();
     this._offcanvas = null;
+
+    this._fullscreenTrap.destroy();
+    this._fullscreenTrap = null;
 
     delete Main.stashTopBar;
     log(`${NAME} disabled`);
@@ -372,5 +377,109 @@ class MenuActivation {
     this._menu.disconnect(this._openChangedId);
     this._offcanvas.disconnect(this._allocationId);
     this._offcanvas.disconnect(this._transitionId);
+  }
+}
+
+const FullscreenTrap_TRACKED = Symbol('tracked');
+
+/**
+ * On X sessions some applications (most notably media players, for ex VLC) after going
+ * fullscreen for a while, when leaving fullscreen and their window geometry is the same
+ * of the screen (so when they are maximized) they not allow elements to be painted on
+ * top of the window, causing the panel to be invisible (still usable however if clicking
+ * on reactive elements).
+ * This seems to be related to the window geometry being the same size of the screen.
+ * The only solution found so far is to modify the "struts" of the workspace so that
+ * the working area of the workspace is smaller than the screen.
+ * This is already managed by "addChrome" method of layout manager, passing the proper
+ * parameter.
+ * What this class do is adding an actor that affects the struts of the workspace by 1px,
+ * only when a window has gone fullscreen and it is currently focused.
+ */
+class FullscreenTrap {
+  constructor(actor) {
+    /* Use same monitor of the actor */
+    const monitor = Main.layoutManager.findMonitorForActor(actor) || {
+      x: 0, y: 0, width: actor.width
+    };
+
+    this._actor = new Clutter.Actor({
+      x: monitor.x,
+      y: monitor.y,
+      width: monitor.width,
+      height: 0
+    });
+    this._active = false;
+
+    Main.layoutManager.addChrome(this._actor, {
+      affectsInputRegion: false,
+      affectsStruts: true
+    });
+
+    this._ifcId = global.display.connect(
+      'in-fullscreen-changed',
+      this._onInFullscreenChanged.bind(this)
+    );
+    this._fwcId = global.display.connect(
+      'notify::focus-window',
+      this._onFocusWindowChanged.bind(this)
+    );
+  }
+
+  destroy() {
+    global.display.disconnect(this._ifcId);
+    global.display.disconnect(this._fwcId);
+    this._actor.destroy();
+  }
+
+  _onInFullscreenChanged() {
+    if (this._active) {
+      return;
+    }
+    /* maybe I should check that the monitor of the actor is fullscreen
+     * to avoid tracking windows on other monitors, but what if the window
+     * is then moved on this monitor? Need to check with more monitors */
+    //    const monitor = Main.layoutManager.findMonitorForActor(this._actor);
+    //    if (!monitor.inFullscreen) {
+    //      return;
+    //    }
+    const win = global.display.focus_window;
+    if (win && win.is_fullscreen()) {
+      this._trackWindow(win);
+      this._setActive(true);
+    }
+  }
+
+  _onFocusWindowChanged() {
+    const win = global.display.focus_window;
+    const tracked = !!win && this._isWindowTracked(win);
+    this._setActive(tracked);
+  }
+
+  _isWindowTracked(win) {
+    return !!win[FullscreenTrap_TRACKED];
+  }
+
+  _trackWindow(win) {
+    win[FullscreenTrap_TRACKED] = true;
+  }
+
+  _untrackWindow(win) {
+    delete win[FullscreenTrap_TRACKED];
+  }
+
+  _setActive(value) {
+    if (this._active !== value) {
+      this._active = value;
+      this._toggle();
+    }
+  }
+
+  _toggle() {
+    if (this._active) {
+      this._actor.set_height(1);
+    } else {
+      this._actor.set_height(0);
+    }
   }
 }
