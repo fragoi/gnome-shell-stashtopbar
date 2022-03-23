@@ -47,9 +47,8 @@ class Extension {
       const actor = panel.statusArea[p];
       this._otherActivations.push(new KeyFocusActivation(actor, this._activator));
       if (actor.menu) {
-        this._otherActivations.push(
-          new MenuActivation(actor.menu, this._activator, this._offcanvas)
-        );
+        this._otherActivations.push(new MenuActivation(actor.menu, this._activator));
+        this._otherActivations.push(new MenuRelayout(actor.menu, this._offcanvas));
       }
     }
 
@@ -358,7 +357,7 @@ class KeyFocusActivation {
 }
 
 class MenuActivation {
-  constructor(menu, activator, offcanvas) {
+  constructor(menu, activator) {
     this._menu = menu;
     this._openChangedId = menu.connect('open-state-changed', () => {
       if (menu.isOpen) {
@@ -367,20 +366,28 @@ class MenuActivation {
         activator.deactivate(ActivationFlags.MENUOPEN);
       }
     });
-    const menuRelayout = () => {
-      if (offcanvas.active && menu.isOpen && menu.actor) {
-        menu.actor.queue_relayout();
-      }
-    };
-    this._offcanvas = offcanvas;
-    this._allocationId = offcanvas.connect('notify::y', menuRelayout);
-    this._transitionId = offcanvas.connect('notify::translation-y', menuRelayout);
   }
 
   destroy() {
     this._menu.disconnect(this._openChangedId);
-    this._offcanvas.disconnect(this._allocationId);
-    this._offcanvas.disconnect(this._transitionId);
+  }
+}
+
+class MenuRelayout {
+  constructor(menu, actor) {
+    const menuRelayout = () => {
+      if (menu.isOpen && menu.actor) {
+        menu.actor.queue_relayout();
+      }
+    };
+    this._actor = actor;
+    this._allocationId = actor.connect('notify::y', menuRelayout);
+    this._transitionId = actor.connect('notify::translation-y', menuRelayout);
+  }
+
+  destroy() {
+    this._actor.disconnect(this._allocationId);
+    this._actor.disconnect(this._transitionId);
   }
 }
 
