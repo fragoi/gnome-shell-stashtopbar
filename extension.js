@@ -39,10 +39,12 @@ class Extension {
       this._animation.setActive(this._activator.active);
     };
 
-    this._hoverActivation = new HoverActivation(this._offcanvas, this._activator);
-    this._overviewActivation = new OverviewActivation(Main.overview, this._activator);
-
     this._destroyables = [];
+
+    this._destroyables.push(new HoverActivation(this._offcanvas, this._activator));
+    this._destroyables.push(new BarrierActivation(this._offcanvas, this._activator));
+    this._destroyables.push(new OverviewActivation(Main.overview, this._activator));
+
     for (const p in panel.statusArea) {
       const actor = panel.statusArea[p];
       this._destroyables.push(new KeyFocusActivation(actor, this._activator));
@@ -66,11 +68,6 @@ class Extension {
 
     this._destroyables.reverse().forEach(e => e.destroy());
     this._destroyables = null;
-
-    this._overviewActivation.destroy();
-    this._overviewActivation = null;
-    this._hoverActivation.destroy();
-    this._hoverActivation = null;
 
     this._activator = null;
 
@@ -182,16 +179,6 @@ class Activator {
 
 class HoverActivation {
   constructor(actor, activator) {
-    this._actor = actor;
-    this._barrier = new Meta.Barrier({
-      directions: Meta.BarrierDirection.POSITIVE_Y,
-      display: global.display,
-      x1: actor.x,
-      y1: actor.y,
-      x2: actor.x + actor.width,
-      y2: actor.y
-    });
-
     this._hoverTracker = new HoverTracker(actor);
     this._hoverTracker.onHoverChanged = () => {
       if (this._hoverTracker.hover) {
@@ -200,15 +187,10 @@ class HoverActivation {
         activator.deactivate(ActivationFlags.HOVER);
       }
     };
-
-    this._pressureBarrier = new PressureBarrier(this._barrier);
-    this._pressureBarrier.onHit = () => activator.activate(ActivationFlags.HOVER);
   }
 
   destroy() {
-    this._pressureBarrier.destroy();
     this._hoverTracker.destroy();
-    this._barrier.destroy();
   }
 }
 
@@ -249,6 +231,30 @@ class HoverTracker {
       return;
     }
     this._setHover(false);
+  }
+}
+
+/**
+ * NOTE: Barrier activation activate the HOVER flag, this is intended.
+ */
+class BarrierActivation {
+  constructor(actor, activator) {
+    this._barrier = new Meta.Barrier({
+      directions: Meta.BarrierDirection.POSITIVE_Y,
+      display: global.display,
+      x1: actor.x,
+      y1: actor.y,
+      x2: actor.x + actor.width,
+      y2: actor.y
+    });
+
+    this._pressureBarrier = new PressureBarrier(this._barrier);
+    this._pressureBarrier.onHit = () => activator.activate(ActivationFlags.HOVER);
+  }
+
+  destroy() {
+    this._pressureBarrier.destroy();
+    this._barrier.destroy();
   }
 }
 
