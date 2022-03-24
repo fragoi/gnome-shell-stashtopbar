@@ -33,7 +33,9 @@ class Extension {
     panelBox.remove_child(panel);
     this._offcanvas.add_child(panel);
 
-    this._animation = new OffcanvasAnimation(this._offcanvas);
+    this._talloc = new TransformedAllocation(this._offcanvas);
+
+    this._animation = new OffcanvasAnimation(this._offcanvas, this._talloc);
 
     this._activator = new Activator();
     this._activator.onActiveChanged = () => {
@@ -51,11 +53,11 @@ class Extension {
       this._destroyables.push(new KeyFocusActivation(actor, this._activator));
       if (actor.menu) {
         this._destroyables.push(new MenuActivation(actor.menu, this._activator));
-        this._destroyables.push(new MenuRelayout(this._offcanvas, actor.menu));
+        this._destroyables.push(new MenuRelayout(this._talloc, actor.menu));
       }
     }
 
-    this._destroyables.push(new MessageTrayRelayout(this._offcanvas, Main.messageTray));
+    this._destroyables.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
 
     this._animation.setActive(false);
 
@@ -80,6 +82,9 @@ class Extension {
     this._animation.destroy();
     this._animation = null;
 
+    this._talloc.destroy();
+    this._talloc = null;
+
     this._offcanvas.destroy();
     this._offcanvas = null;
 
@@ -92,7 +97,7 @@ class Extension {
 }
 
 class OffcanvasAnimation {
-  constructor(actor) {
+  constructor(actor, talloc) {
     this._actor = actor;
     this._active = true;
     this._animating = false;
@@ -103,10 +108,16 @@ class OffcanvasAnimation {
       actor.y += actor.translation_y - this._translation_y;
       actor.translation_y = this._translation_y;
     });
+
+    this._transitionId = actor.connect('notify::translation-y', () => {
+      const translation = actor.translation_y;
+      talloc.setTranslation({ y1: translation, y2: translation });
+    });
   }
 
   destroy() {
     this._actor.disconnect(this._tcId);
+    this._actor.disconnect(this._transitionId);
   }
 
   get active() {
@@ -434,41 +445,28 @@ class MenuActivation {
 }
 
 class MenuRelayout {
-  constructor(actor, menu) {
-    const menuRelayout = () => {
+  constructor(talloc, menu) {
+    this._talloc = talloc;
+    this._changedId = talloc.connect('allocation-changed', () => {
       if (menu.isOpen && menu.actor) {
         menu.actor.queue_relayout();
       }
-    };
-    this._actor = actor;
-    this._allocationId = actor.connect('notify::y', menuRelayout);
-    this._transitionId = actor.connect('notify::translation-y', menuRelayout);
+    });
   }
 
   destroy() {
-    this._actor.disconnect(this._allocationId);
-    this._actor.disconnect(this._transitionId);
+    this._talloc.disconnect(this._changedId);
   }
 }
 
 class MessageTrayRelayout {
-  constructor(actor, messageTray) {
-    const constraint = new Clutter.SnapConstraint({
-      source: actor,
-      from_edge: Clutter.SnapEdge.TOP,
-      to_edge: Clutter.SnapEdge.BOTTOM
-    });
-    this._actor = actor;
+  constructor(talloc, messageTray) {
     this._messageTray = messageTray;
-    this._constraint = constraint;
-    this._transitionId = actor.connect('notify::translation-y', () => {
-      constraint.set_offset(actor.translation_y);
-    });
-    messageTray.add_constraint(constraint);
+    this._constraint = new CanvasConstraint(talloc);
+    messageTray.add_constraint(this._constraint);
   }
 
   destroy() {
-    this._actor.disconnect(this._transitionId);
     this._messageTray.remove_constraint(this._constraint);
   }
 }
@@ -478,15 +476,32 @@ const CanvasConstraint = GObject.registerClass(
     _init(talloc) {
       super._init();
       this._talloc = talloc;
-      this._changedId = talloc.connect(
+    }
+
+    _connect() {
+      if (this._changedId) {
+        return;
+      }
+      this._changedId = this._talloc.connect(
         'allocation-changed',
         this._queueRelayout.bind(this)
       );
     }
 
-    vfunc_dispose() {
+    _disconnect() {
+      if (!this._changedId) {
+        return;
+      }
       this._talloc.disconnect(this._changedId);
-      super.vfunc_dispose();
+    }
+
+    vfunc_set_actor(actor) {
+      if (actor) {
+        this._connect();
+      } else {
+        this._disconnect();
+      }
+      super.vfunc_set_actor(actor);
     }
 
     vfunc_update_allocation(_actor, allocation) {
@@ -510,22 +525,22 @@ const CanvasConstraint = GObject.registerClass(
       if (rw > rh) {
         /* top */
         if (ry2 < 0.3) {
-          allocation.y1 = Math.max(ay1, ty2);
+          allocation.y1 = Math.max(ay1, Math.ceil(ty2));
         }
         /* bottom */
         else if (ry1 > 0.7) {
-          allocation.y2 = Math.min(ay2, ty1);
+          allocation.y2 = Math.min(ay2, Math.floor(ty1));
         }
       }
       /* vertical */
       else if (rw < rh) {
         /* left */
         if (rx2 < 0.3) {
-          allocation.x1 = Math.max(ax1, tx2);
+          allocation.x1 = Math.max(ax1, Math.ceil(tx2));
         }
         /* right */
         else if (rx1 > 0.7) {
-          allocation.x2 = Math.min(ax2, tx1);
+          allocation.x2 = Math.min(ax2, Math.floor(tx1));
         }
       }
     }
