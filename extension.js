@@ -520,9 +520,10 @@ const CanvasConstraint = GObject.registerClass(
       const ry1 = (ty1 - ay1) / h;
       const rx2 = (tx2 - ax1) / w;
       const ry2 = (ty2 - ay1) / h;
-
+      /* relative size */
       const rw = rx2 - rx1;
       const rh = ry2 - ry1;
+
       /* horizontal */
       if (rw > rh) {
         /* top */
