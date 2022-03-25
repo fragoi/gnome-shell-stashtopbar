@@ -476,6 +476,7 @@ const CanvasConstraint = GObject.registerClass(
     _init(talloc) {
       super._init();
       this._talloc = talloc;
+      this._changedId = 0;
     }
 
     _connect() {
@@ -493,6 +494,7 @@ const CanvasConstraint = GObject.registerClass(
         return;
       }
       this._talloc.disconnect(this._changedId);
+      this._changedId = 0;
     }
 
     vfunc_set_actor(actor) {
