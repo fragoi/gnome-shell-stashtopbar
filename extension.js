@@ -386,7 +386,6 @@ class PressureBarrier {
   }
 
   _onBarrierLeft(_barrier, _event) {
-    _log && _log('Barrier left');
     this._expire = 0;
     this._pressure = 0;
     this._hit = false;
