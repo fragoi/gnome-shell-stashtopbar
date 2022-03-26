@@ -74,16 +74,16 @@ class Extension {
 
     this._activator = null;
 
-    this._offcanvas.remove_child(panel);
-    panelBox.add_child(panel);
-
-    Main.layoutManager.removeChrome(this._offcanvas);
-
     this._animation.destroy();
     this._animation = null;
 
     this._talloc.destroy();
     this._talloc = null;
+
+    this._offcanvas.remove_child(panel);
+    panelBox.add_child(panel);
+
+    Main.layoutManager.removeChrome(this._offcanvas);
 
     this._offcanvas.destroy();
     this._offcanvas = null;
