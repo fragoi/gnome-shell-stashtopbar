@@ -375,6 +375,12 @@ class PressureBarrier {
       this._hit = true;
       this.onHit();
     }
+    /* maybe I should release the pointer when there is no timeout
+     * so I can support having a monitor after the barrier?
+     * Need to check with more monitors */
+    //    else if (this._timeout <= 0) {
+    //      this._barrier.release(event);
+    //    }
   }
 
   _distanceAcross(event) {
@@ -506,6 +512,11 @@ const CanvasConstraint = GObject.registerClass(
     }
 
     vfunc_update_allocation(_actor, allocation) {
+      /* maybe I should check the actors have the same parent,
+       * as allocation is relative to the parent, however it may be
+       * they have different parents but still valid relative allocations,
+       * only time will tell */
+
       const { x1: ax1, y1: ay1, x2: ax2, y2: ay2 } = allocation;
       const w = ax2 - ax1;
       const h = ay2 - ay1;
