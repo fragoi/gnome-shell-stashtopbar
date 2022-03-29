@@ -144,6 +144,12 @@ class OffcanvasAnimation {
   }
 
   _slide(value, delay) {
+    /* TODO: this should go away when implementing proper transition */
+    if (!this._actor.is_mapped()) {
+      this._actor.y += value;
+      return;
+    }
+
     if (!this._animating) {
       this._animating = true;
       //        this._y = this._actor.translation_y;
