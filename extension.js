@@ -96,6 +96,55 @@ class Extension {
   }
 }
 
+class AllocationNode {
+  constructor(actor, handler) {
+    _log && _log(`Creating allocation node for: ${actor}`);
+
+    this._actor = actor;
+    this._handler = handler;
+    this._parentSetId = actor.connect(
+      'parent-set',
+      this._onParentSet.bind(this)
+    );
+    this._allocationChangedId = actor.connect(
+      'notify::allocation',
+      this._onAllocationChanged.bind(this)
+    );
+
+    const parent = actor.get_parent();
+    this._parent = parent ? new AllocationNode(parent, handler) : null;
+  }
+
+  destroy() {
+    _log && _log(`Destroying allocation node for: ${this._actor}`);
+
+    this._actor.disconnect(this._parentSetId);
+    this._actor.disconnect(this._allocationChangedId);
+    if (this._parent) {
+      this._parent.destroy();
+    }
+  }
+
+  _onParentSet(actor, oldParent) {
+    _log && _log(`Parent set on: ${actor}, ` +
+      `oldParent: ${oldParent}, ` +
+      `newParent: ${actor.get_parent()}`);
+
+    if (this._parent) {
+      this._parent.destroy();
+    } else if (oldParent) {
+      logError('Actor had a parent but this node not');
+    }
+    const parent = actor.get_parent();
+    this._parent = parent ? new AllocationNode(parent, this._handler) : null;
+  }
+
+  _onAllocationChanged(actor) {
+    _log && _log(`Allocation changed on: ${actor}`);
+    this._handler(actor);
+  }
+}
+
 class OffcanvasAnimation {
   constructor(actor, talloc) {
     this._actor = actor;
