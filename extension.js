@@ -19,6 +19,17 @@ function init() {
   return new Extension();
 }
 
+function _activationFlagsToString(flags) {
+  let string = '';
+  for (const name in ActivationFlags) {
+    if (flags & ActivationFlags[name]) {
+      string && (string += ', ');
+      string += name;
+    }
+  }
+  return string;
+}
+
 class Extension {
   enable() {
     const panel = Main.panel;
@@ -52,6 +63,11 @@ class Extension {
     this._activator = new Activator();
     this._activator.onActiveChanged = () => {
       this._animation.setActive(this._activator.active);
+    };
+    this._activator.onFlagsChanged = () => {
+      _log && _log(`Activator flags changed: [${(
+        _activationFlagsToString(this._activator.flags)
+      )}]`);
     };
 
     this._destroyables = [];
@@ -337,11 +353,20 @@ class Activator {
     this._setFlags(this._flags & ~flags);
   }
 
+  get flags() {
+    return this._flags;
+  }
+
+  onFlagsChanged() { }
+
   _setFlags(flags) {
     const pre = this._flags;
-    this._flags = flags;
-    if (!!pre !== !!flags) {
-      this.onActiveChanged();
+    if (pre !== flags) {
+      this._flags = flags;
+      this.onFlagsChanged();
+      if (!!pre !== !!flags) {
+        this.onActiveChanged();
+      }
     }
   }
 }
