@@ -99,24 +99,23 @@ class Extension {
 class OffcanvasAnimation {
   constructor(actor, talloc) {
     this._actor = actor;
+    this._talloc = talloc;
+
     this._active = true;
     this._animating = false;
 
-    this._tcId = actor.connect('transitions-completed', () => {
-      this._animating = false;
-
-      actor.y += actor.translation_y - this._translation_y;
-      actor.translation_y = this._translation_y;
-    });
-
-    this._transitionId = actor.connect('notify::translation-y', () => {
-      const translation = actor.translation_y;
-      talloc.setTranslation({ y1: translation, y2: translation });
-    });
+    this._completedId = actor.connect(
+      'transitions-completed',
+      this._onCompleted.bind(this)
+    );
+    this._transitionId = actor.connect(
+      'notify::translation-y',
+      this._onTransition.bind(this)
+    );
   }
 
   destroy() {
-    this._actor.disconnect(this._tcId);
+    this._actor.disconnect(this._completedId);
     this._actor.disconnect(this._transitionId);
   }
 
@@ -144,26 +143,57 @@ class OffcanvasAnimation {
   }
 
   _slide(value, delay) {
-    /* TODO: this should go away when implementing proper transition */
-    if (!this._actor.is_mapped()) {
-      this._actor.y += value;
-      return;
-    }
+    const actor = this._actor;
 
     if (!this._animating) {
       this._animating = true;
-      //        this._y = this._actor.translation_y;
-      this._y = this._translation_y = this._actor.translation_y;
-      //        this._y = this._actor.y;
+      //        this._value = actor.translation_y;
+      this._value = this._translation_y = actor.translation_y;
+      //        this._value = actor.y;
     }
-    this._y += value;
-    this._actor.save_easing_state();
+
+    this._value += value;
+    actor.save_easing_state();
     if (delay)
-      this._actor.set_easing_delay(delay);
-    //    this._actor.set_easing_duration(3000);
-    this._actor.translation_y = this._y;
-    //      this._actor.y = this._y;
-    this._actor.restore_easing_state();
+      actor.set_easing_delay(delay);
+    //    actor.set_easing_duration(3000);
+    actor.translation_y = this._value;
+    //      actor.y = this._value;
+    actor.restore_easing_state();
+
+    /* TODO: (maybe) this should go away when implementing proper transition */
+    if (!actor.is_mapped()) {
+      _log && _log('Actor not mapped');
+      this._onCompleted();
+    }
+  }
+
+  _onCompleted() {
+    _log && _log(`Completed`);
+    if (!this._animating) {
+      return;
+    }
+
+    this._animating = false;
+
+    const actor = this._actor;
+    const allocation = this._talloc.allocation;
+    const translated_y = actor.translation_y - this._translation_y;
+
+    _log && _log(`Translated Y: ${translated_y}`);
+
+    /* instruct transformed allocation that this change is a transformation */
+    allocation.y1 += translated_y;
+    allocation.y2 += translated_y;
+
+    /* change actor position and reset translation */
+    actor.y += translated_y;
+    actor.translation_y = this._translation_y;
+  }
+
+  _onTransition() {
+    const translation_y = this._actor.translation_y;
+    this._talloc.setTranslation({ y1: translation_y, y2: translation_y });
   }
 }
 
