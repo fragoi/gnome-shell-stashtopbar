@@ -34,6 +34,18 @@ class Extension {
     this._offcanvas.add_child(panel);
 
     this._talloc = new TransformedAllocation(this._offcanvas);
+    this._talloc.connect('allocation-changed', () => {
+      if (_log) {
+        const { x1, y1, x2, y2 } = this._talloc.allocation;
+        _log(`Allocation changed: [${x1},${y1},${x2},${y2}]`);
+      }
+    });
+    this._talloc.connect('transformed-changed', () => {
+      if (_log) {
+        const { x1, y1, x2, y2 } = this._talloc;
+        _log(`Transformed changed: [${x1},${y1},${x2},${y2}]`);
+      }
+    });
 
     this._animation = new OffcanvasAnimation(this._offcanvas, this._talloc);
 
