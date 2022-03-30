@@ -59,10 +59,39 @@ class Extension {
 
     this._destroyables.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
 
-    this._animation.setActive(false);
+    this._deactivateOnEnable();
 
     Main.stashTopBar = this;
     log(`${NAME} enabled`);
+  }
+
+  _deactivateOnEnable() {
+    const actor = this._offcanvas;
+    if (!actor) {
+      return;
+    }
+    /* wait for actor to be mapped */
+    if (!actor.is_mapped()) {
+      log('Actor is not mapped, delay deactivation');
+      const mappedId = actor.connect('notify::mapped', () => {
+        actor.disconnect(mappedId);
+        this._deactivateOnEnable();
+      });
+      return;
+    }
+    /* wait for actor to have an allocation */
+    if (!actor.has_allocation()) {
+      log('Actor has no allocation, delay deactivation');
+      const allocationId = actor.connect('notify::allocation', () => {
+        actor.disconnect(allocationId);
+        this._deactivateOnEnable();
+      });
+      return;
+    }
+    /* deactivate if necessary */
+    if (this._animation && this._activator) {
+      this._animation.setActive(this._activator.active);
+    }
   }
 
   disable() {
