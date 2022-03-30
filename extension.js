@@ -192,13 +192,11 @@ class OffcanvasAnimation {
 
     /* TODO: (maybe) this should go away when implementing proper transition */
     if (!actor.is_mapped()) {
-      _log && _log('Actor not mapped');
       this._onCompleted();
     }
   }
 
   _onCompleted() {
-    _log && _log(`Completed`);
     if (!this._animating) {
       return;
     }
@@ -208,8 +206,6 @@ class OffcanvasAnimation {
     const actor = this._actor;
     const allocation = this._talloc.allocation;
     const translated_y = actor.translation_y - this._translation_y;
-
-    _log && _log(`Translated Y: ${translated_y}`);
 
     /* instruct transformed allocation that this change is a transformation */
     allocation.y1 += translated_y;
