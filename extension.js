@@ -170,13 +170,16 @@ class OffcanvasAnimation {
 class TransformedAllocation {
   constructor(actor) {
     this._actor = actor;
-    this._allocation = { x1: 0, y1: 0, x2: 0, y2: 0 };
+    this._allocated = { x1: 0, y1: 0, x2: 0, y2: 0 };
     this._translation = { x1: 0, y1: 0, x2: 0, y2: 0 };
+    this._allocation = { x1: 0, y1: 0, x2: 0, y2: 0 };
 
     this._allocationChangedId = actor.connect('notify::allocation', () => {
       this._updateAllocation();
     });
 
+    /* updating the allocation when the actor has no allocation will cause
+     * the allocation to be initialized, maybe something I will want to do */
     if (actor.has_allocation()) {
       this._updateAllocation();
     }
@@ -186,32 +189,44 @@ class TransformedAllocation {
     this._actor.disconnect(this._allocationChangedId);
   }
 
+  get actor() {
+    return this._actor;
+  }
+
+  get allocation() {
+    return this._allocation;
+  }
+
   get x1() {
-    return this._allocation.x1 + this._translation.x1;
+    return this._allocated.x1 + this._translation.x1;
   }
 
   get y1() {
-    return this._allocation.y1 + this._translation.y1;
+    return this._allocated.y1 + this._translation.y1;
   }
 
   get x2() {
-    return this._allocation.x2 + this._translation.x2;
+    return this._allocated.x2 + this._translation.x2;
   }
 
   get y2() {
-    return this._allocation.y2 + this._translation.y2;
+    return this._allocated.y2 + this._translation.y2;
   }
 
   setTranslation(translation) {
     if (this._setValues(this._translation, translation)) {
-      this._allocationChanged();
+      this._transformedChanged();
     }
   }
 
   _updateAllocation() {
     const allocation = this._actor.get_allocation_box();
-    if (this._setValues(this._allocation, allocation)) {
-      this._allocationChanged();
+    if (this._setValues(this._allocated, allocation)) {
+      if (this._setValues(this._allocation, allocation)) {
+        this._allocationChanged();
+      } else {
+        this._transformedChanged();
+      }
     }
   }
 
@@ -228,6 +243,10 @@ class TransformedAllocation {
 
   _allocationChanged() {
     this.emit('allocation-changed');
+  }
+
+  _transformedChanged() {
+    this.emit('transformed-changed');
   }
 }
 Signals.addSignalMethods(TransformedAllocation.prototype);
@@ -458,7 +477,7 @@ class MenuActivation {
 class MenuRelayout {
   constructor(talloc, menu) {
     this._talloc = talloc;
-    this._changedId = talloc.connect('allocation-changed', () => {
+    this._changedId = talloc.connect('transformed-changed', () => {
       if (menu.isOpen && menu.actor) {
         menu.actor.queue_relayout();
       }
@@ -495,7 +514,7 @@ const CanvasConstraint = GObject.registerClass(
         return;
       }
       this._changedId = this._talloc.connect(
-        'allocation-changed',
+        'transformed-changed',
         this._queueRelayout.bind(this)
       );
     }
