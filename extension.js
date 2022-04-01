@@ -253,16 +253,18 @@ class OffcanvasAnimation {
 class TransformedAllocation {
   constructor(actor) {
     this._actor = actor;
-    this._allocated = { x1: 0, y1: 0, x2: 0, y2: 0 };
     this._translation = { x1: 0, y1: 0, x2: 0, y2: 0 };
-    this._allocation = { x1: 0, y1: 0, x2: 0, y2: 0 };
+    /* lazily initialized */
+    this.__allocated = null;
+    this.__allocation = null;
 
     this._allocationChangedId = actor.connect('notify::allocation', () => {
       this._updateAllocation();
     });
 
     /* updating the allocation when the actor has no allocation will cause
-     * the allocation to be initialized, maybe something I will want to do */
+     * the allocation to be initialized, not doing it for now and rely on
+     * lazy initializers */
     if (actor.has_allocation()) {
       this._updateAllocation();
     }
@@ -300,6 +302,40 @@ class TransformedAllocation {
     if (this._setValues(this._translation, translation)) {
       this._transformedChanged();
     }
+  }
+
+  /**
+   * Lazy initializer for "_allocated" property.
+   */
+  get _allocated() {
+    let allocated = this.__allocated;
+    if (!allocated) {
+      allocated = { x1: 0, y1: 0, x2: 0, y2: 0 };
+      this._setValues(allocated, this._actor.get_allocation_box());
+      this.__allocated = allocated;
+      if (_log) {
+        const { x1, y1, x2, y2 } = allocated;
+        _log(`Allocated initialized: [${x1},${y1},${x2},${y2}]`);
+      }
+    }
+    return allocated;
+  }
+
+  /**
+   * Lazy initializer for "_allocation" property.
+   */
+  get _allocation() {
+    let allocation = this.__allocation;
+    if (!allocation) {
+      allocation = { x1: 0, y1: 0, x2: 0, y2: 0 };
+      this._setValues(allocation, this._allocated);
+      this.__allocation = allocation;
+      if (_log) {
+        const { x1, y1, x2, y2 } = allocation;
+        _log(`Allocation initialized: [${x1},${y1},${x2},${y2}]`);
+      }
+    }
+    return allocation;
   }
 
   _updateAllocation() {
