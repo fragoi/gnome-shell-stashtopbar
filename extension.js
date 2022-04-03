@@ -4,7 +4,10 @@ const { GObject, Clutter, Meta } = imports.gi;
 const Signals = imports.signals;
 const Main = imports.ui.main;
 
+const ExtensionUtils = imports.misc.extensionUtils;
+
 const NAME = 'Stash Top Bar';
+const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
 
 const ActivationFlags = {
   HOVER: 1,
@@ -34,6 +37,8 @@ class Extension {
   enable() {
     const panel = Main.panel;
     const panelBox = Main.layoutManager.panelBox;
+
+    this._gsettings = ExtensionUtils.getSettings(GSETTINGS_ID);
 
     this._fullscreenTrap = new FullscreenTrap(panelBox);
 
@@ -147,6 +152,8 @@ class Extension {
 
     this._fullscreenTrap.destroy();
     this._fullscreenTrap = null;
+
+    this._gsettings = null;
 
     delete Main.stashTopBar;
     log(`${NAME} disabled`);
