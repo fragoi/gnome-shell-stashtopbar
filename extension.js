@@ -499,8 +499,8 @@ class PressureBarrier {
   constructor(barrier, threshold = 100, timeout = 100) {
     this._barrier = barrier;
     this._horizontal = barrier.y1 === barrier.y2;
-    this._threshold = threshold;
-    this._timeout = timeout;
+    this.threshold = threshold;
+    this.timeout = timeout;
 
     this._expire = 0;
     this._pressure = 0;
@@ -522,15 +522,15 @@ class PressureBarrier {
       return;
     }
     if (event.time >= this._expire) {
-      this._expire = event.time + this._timeout;
+      this._expire = event.time + this.timeout;
       this._pressure = 0;
     }
     const across = this._distanceAcross(event);
     const along = this._distanceAlong(event);
     this._pressure += along > 1 ? across / along : across;
-    if (this._pressure >= this._threshold) {
+    if (this._pressure >= this.threshold) {
       _log && _log(`Barrier trigger, pressure: ${this._pressure}, time: ${(
-        event.time + this._timeout - this._expire
+        event.time + this.timeout - this._expire
       )}`);
       this._hit = true;
       this.onHit();
@@ -538,7 +538,7 @@ class PressureBarrier {
     /* maybe I should release the pointer when there is no timeout
      * so I can support having a monitor after the barrier?
      * Need to check with more monitors */
-    //    else if (this._timeout <= 0) {
+    //    else if (this.timeout <= 0) {
     //      this._barrier.release(event);
     //    }
   }
