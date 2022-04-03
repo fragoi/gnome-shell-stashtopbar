@@ -16,6 +16,15 @@ const ActivationFlags = {
   MENUOPEN: 8
 };
 
+const Edge = {
+  NONE: -2,
+  AUTO: -1,
+  TOP: 0,
+  RIGHT: 1,
+  BOTTOM: 2,
+  LEFT: 3
+};
+
 var _log = undefined;
 
 function init() {
@@ -78,7 +87,11 @@ class Extension {
     this._destroyables = [];
 
     this._destroyables.push(new HoverActivation(this._offcanvas, this._activator));
-    this._destroyables.push(new BarrierActivation(this._offcanvas, this._activator));
+    this._destroyables.push(new BarrierActivation(
+      this._talloc,
+      this._gsettings,
+      this._activator
+    ));
     this._destroyables.push(new OverviewActivation(Main.overview, this._activator));
 
     for (const p in panel.statusArea) {
@@ -472,26 +485,167 @@ class HoverTracker {
 }
 
 /**
- * NOTE: Barrier activation activate the HOVER flag, this is intended.
+ * NOTE: Barrier activation activate the HOVER flag.
  */
 class BarrierActivation {
-  constructor(actor, activator) {
-    this._barrier = new Meta.Barrier({
-      directions: Meta.BarrierDirection.POSITIVE_Y,
-      display: global.display,
-      x1: actor.x,
-      y1: actor.y,
-      x2: actor.x + actor.width,
-      y2: actor.y
-    });
+  constructor(talloc, gsettings, activator) {
+    this._talloc = talloc;
+    this._gsettings = gsettings;
+    this._activator = activator;
 
-    this._pressureBarrier = new PressureBarrier(this._barrier);
-    this._pressureBarrier.onHit = () => activator.activate(ActivationFlags.HOVER);
+    this._barrier = null;
+    this._pressureBarrier = null;
+
+    this._allocationChangedId = talloc.connect(
+      'allocation-changed',
+      this._updateBarrier.bind(this)
+    );
+    this._barrierEdgeChangedId = gsettings.connect(
+      'changed::barrier-edge',
+      this._updateBarrier.bind(this)
+    );
+    this._bpThresholdChangedId = gsettings.connect(
+      'changed::barrier-pressure-threshold',
+      this._updateThreshold.bind(this)
+    );
+    this._bpTimeoutChangedId = gsettings.connect(
+      'changed::barrier-pressure-timeout',
+      this._updateTimeout.bind(this)
+    );
+
+    this._updateBarrier();
   }
 
   destroy() {
-    this._pressureBarrier.destroy();
-    this._barrier.destroy();
+    this._talloc.disconnect(this._allocationChangedId);
+    this._gsettings.disconnect(this._barrierEdgeChangedId);
+    this._gsettings.disconnect(this._bpThresholdChangedId);
+    this._gsettings.disconnect(this._bpTimeoutChangedId);
+
+    this._destroyBarrier();
+  }
+
+  _activate() {
+    this._activator.activate(ActivationFlags.HOVER);
+  }
+
+  _updateBarrier() {
+    const props = this._barrierProps();
+
+    if (this._checkBarrierProps(props)) {
+      return;
+    }
+
+    this._destroyBarrier();
+
+    if (!props) {
+      return;
+    }
+
+    _log && _log(`Creating new barrier with props: ${JSON.stringify(props)}`);
+
+    this._barrier = new Meta.Barrier({
+      display: global.display,
+      ...props
+    });
+    this._pressureBarrier = new PressureBarrier(this._barrier);
+    this._pressureBarrier.onHit = this._activate.bind(this);
+
+    this._updateThreshold();
+    this._updateTimeout();
+  }
+
+  _updateThreshold() {
+    if (!this._pressureBarrier) {
+      return;
+    }
+    const threshold = this._gsettings.get_int('barrier-pressure-threshold');
+    this._pressureBarrier.threshold = threshold;
+  }
+
+  _updateTimeout() {
+    if (!this._pressureBarrier) {
+      return;
+    }
+    const timeout = this._gsettings.get_int('barrier-pressure-timeout');
+    this._pressureBarrier.timeout = timeout;
+  }
+
+  _destroyBarrier() {
+    if (this._pressureBarrier) {
+      this._pressureBarrier.destroy();
+      this._pressureBarrier = null;
+    }
+    if (this._barrier) {
+      this._barrier.destroy();
+      this._barrier = null;
+    }
+  }
+
+  _barrierProps() {
+    const edge = this._gsettings.get_enum('barrier-edge');
+    if (edge === Edge.NONE) {
+      return;
+    }
+
+    /* Use same monitor of the actor */
+    const actor = this._talloc.actor;
+    const monitor = Main.layoutManager.findMonitorForActor(actor);
+    if (!monitor) {
+      return;
+    }
+
+    const x1 = monitor.x;
+    const y1 = monitor.y;
+    const x2 = x1 + monitor.width;
+    const y2 = y1 + monitor.height;
+
+    switch (edge) {
+      case Edge.TOP:
+        return {
+          directions: Meta.BarrierDirection.POSITIVE_Y,
+          x1,
+          y1,
+          x2,
+          y2: y1
+        };
+      case Edge.RIGHT:
+        return {
+          directions: Meta.BarrierDirection.NEGATIVE_X,
+          x1: x2,
+          y1,
+          x2,
+          y2
+        };
+      case Edge.BOTTOM:
+        return {
+          directions: Meta.BarrierDirection.NEGATIVE_Y,
+          x1,
+          y1: y2,
+          x2,
+          y2
+        };
+      case Edge.LEFT:
+        return {
+          directions: Meta.BarrierDirection.POSITIVE_X,
+          x1,
+          y1,
+          x2: x1,
+          y2
+        };
+    }
+  }
+
+  _checkBarrierProps(props) {
+    const barrier = this._barrier;
+    if (barrier && props) {
+      return barrier.directions === props.directions
+        && barrier.x1 === props.x1
+        && barrier.y1 === props.y1
+        && barrier.x2 === props.x2
+        && barrier.y2 === props.y2;
+    }
+    return !barrier && !props;
   }
 }
 
