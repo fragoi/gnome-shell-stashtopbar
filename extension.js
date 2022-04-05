@@ -283,8 +283,7 @@ class TransformedAllocation {
     });
 
     /* updating the allocation when the actor has no allocation will cause
-     * the allocation to be initialized, not doing it for now and rely on
-     * lazy initializers */
+     * the allocation to be initialized, not doing it for now */
     if (actor.has_allocation()) {
       this._updateAllocation();
     }
@@ -324,48 +323,39 @@ class TransformedAllocation {
     }
   }
 
-  /**
-   * Lazy initializer for "_allocated" property.
-   */
   get _allocated() {
-    let allocated = this.__allocated;
-    if (!allocated) {
-      allocated = { x1: 0, y1: 0, x2: 0, y2: 0 };
-      this._setValues(allocated, this._actor.get_allocation_box());
-      this.__allocated = allocated;
-      if (_log) {
-        const { x1, y1, x2, y2 } = allocated;
-        _log(`Allocated initialized: [${x1},${y1},${x2},${y2}]`);
-      }
-    }
-    return allocated;
+    this._ensureAllocation();
+    return this.__allocated;
   }
 
-  /**
-   * Lazy initializer for "_allocation" property.
-   */
   get _allocation() {
-    let allocation = this.__allocation;
-    if (!allocation) {
-      allocation = { x1: 0, y1: 0, x2: 0, y2: 0 };
-      this._setValues(allocation, this._allocated);
-      this.__allocation = allocation;
-      if (_log) {
-        const { x1, y1, x2, y2 } = allocation;
-        _log(`Allocation initialized: [${x1},${y1},${x2},${y2}]`);
-      }
-    }
-    return allocation;
+    this._ensureAllocation();
+    return this.__allocation;
   }
 
   _updateAllocation() {
+    this._ensureAllocation();
     const allocation = this._actor.get_allocation_box();
-    if (this._setValues(this._allocated, allocation)) {
-      if (this._setValues(this._allocation, allocation)) {
+    if (this._setValues(this.__allocated, allocation)) {
+      if (this._setValues(this.__allocation, allocation)) {
         this._allocationChanged();
       } else {
         this._transformedChanged();
       }
+    }
+  }
+
+  _ensureAllocation() {
+    if (this.__allocated) {
+      return;
+    }
+    const allocated = { x1: 0, y1: 0, x2: 0, y2: 0 };
+    this._setValues(allocated, this._actor.get_allocation_box());
+    this.__allocated = allocated;
+    this.__allocation = { ...allocated };
+    if (_log) {
+      const { x1, y1, x2, y2 } = allocated;
+      _log(`Allocation initialized: [${x1},${y1},${x2},${y2}]`);
     }
   }
 
