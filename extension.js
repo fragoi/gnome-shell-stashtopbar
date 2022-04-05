@@ -42,6 +42,46 @@ function _activationFlagsToString(flags) {
   return string;
 }
 
+function _relativeEdge(boxA, boxB) {
+  const { x1: x, y1: y } = boxA;
+  const w = (boxA.x2 - x) || 1;
+  const h = (boxA.y2 - y) || 1;
+
+  /* relative points */
+  const rx1 = (boxB.x1 - x) / w;
+  const ry1 = (boxB.y1 - y) / h;
+  const rx2 = (boxB.x2 - x) / w;
+  const ry2 = (boxB.y2 - y) / h;
+  /* relative size */
+  const rw = rx2 - rx1;
+  const rh = ry2 - ry1;
+
+  /* horizontal */
+  if (rw > rh) {
+    /* top */
+    if (ry2 < 0.3) {
+      return Edge.TOP;
+    }
+    /* bottom */
+    else if (ry1 > 0.7) {
+      return Edge.BOTTOM;
+    }
+  }
+  /* vertical */
+  else if (rw < rh) {
+    /* left */
+    if (rx2 < 0.3) {
+      return Edge.LEFT;
+    }
+    /* right */
+    else if (rx1 > 0.7) {
+      return Edge.RIGHT;
+    }
+  }
+
+  return Edge.NONE;
+}
+
 class Extension {
   enable() {
     const panel = Main.panel;
@@ -862,44 +902,25 @@ const CanvasConstraint = GObject.registerClass(
        * they have different parents but still valid relative allocations,
        * only time will tell */
 
-      const { x1: ax1, y1: ay1, x2: ax2, y2: ay2 } = allocation;
-      const w = ax2 - ax1;
-      const h = ay2 - ay1;
-      if (!w || !h) {
-        return;
+      const edge = _relativeEdge(allocation, this._talloc);
+      switch (edge) {
+        case Edge.TOP:
+          allocation.y1 = Math.max(allocation.y1, Math.ceil(this._talloc.y2));
+          break;
+        case Edge.BOTTOM:
+          allocation.y2 = Math.min(allocation.y2, Math.floor(this._talloc.y1));
+          break;
+        case Edge.LEFT:
+          allocation.x1 = Math.max(allocation.x1, Math.ceil(this._talloc.x2));
+          break;
+        case Edge.RIGHT:
+          allocation.x2 = Math.min(allocation.x2, Math.floor(this._talloc.x1));
+          break;
       }
 
-      const { x1: tx1, y1: ty1, x2: tx2, y2: ty2 } = this._talloc;
-      /* relative points */
-      const rx1 = (tx1 - ax1) / w;
-      const ry1 = (ty1 - ay1) / h;
-      const rx2 = (tx2 - ax1) / w;
-      const ry2 = (ty2 - ay1) / h;
-      /* relative size */
-      const rw = rx2 - rx1;
-      const rh = ry2 - ry1;
-
-      /* horizontal */
-      if (rw > rh) {
-        /* top */
-        if (ry2 < 0.3) {
-          allocation.y1 = Math.max(ay1, Math.ceil(ty2));
-        }
-        /* bottom */
-        else if (ry1 > 0.7) {
-          allocation.y2 = Math.min(ay2, Math.floor(ty1));
-        }
-      }
-      /* vertical */
-      else if (rw < rh) {
-        /* left */
-        if (rx2 < 0.3) {
-          allocation.x1 = Math.max(ax1, Math.ceil(tx2));
-        }
-        /* right */
-        else if (rx1 > 0.7) {
-          allocation.x2 = Math.min(ax2, Math.floor(tx1));
-        }
+      if (_log) {
+        const { x1, y1, x2, y2 } = allocation;
+        _log(`Constraint updated allocation: [${x1},${y1},${x2},${y2}]`);
       }
     }
 
