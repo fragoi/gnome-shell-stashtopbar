@@ -19,21 +19,21 @@
       <default>'top'</default>
       <summary>Barrier Edge</summary>
       <description>
-        Edge of the monitor where the barrier is placed.
+        Edge of monitor where barrier is placed.
       </description>
     </key>
     <key name="barrier-pressure-threshold" type="i">
       <default>100</default>
       <summary>Barrier Pressure Threshold</summary>
       <description>
-        The pressure in pixel across the barrier required to trigger. 
+        Pressure in pixel across barrier required to trigger.
       </description>
     </key>
     <key name="barrier-pressure-timeout" type="i">
       <default>100</default>
       <summary>Barrier Pressure Timeout</summary>
       <description>
-        The amount of time in milliseconds during wich the pressure is accumulated. 
+        Amount of time in milliseconds during wich pressure is accumulated.
       </description>
     </key>
   </schema>
