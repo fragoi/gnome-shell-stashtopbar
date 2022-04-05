@@ -11,6 +11,13 @@
     <value nick="left" value="3" />
   </enum>
 
+  <enum id="com.github.fragoi.stashtopbar.SlidePrevention">
+    <value nick="none" value="0" />
+    <value nick="soft" value="1" />
+    <value nick="medium" value="2" />
+    <value nick="hard" value="3" />
+  </enum>
+
   <schema
     id="org.gnome.shell.extensions.com-github-fragoi-stashtopbar"
     path="/org/gnome/shell/extensions/com-github-fragoi-stashtopbar/">
@@ -34,6 +41,17 @@
       <summary>Barrier Pressure Timeout</summary>
       <description>
         Amount of time in milliseconds during wich pressure is accumulated.
+      </description>
+    </key>
+    <key name="barrier-slide-prevention"
+      enum="com.github.fragoi.stashtopbar.SlidePrevention">
+      <default>'medium'</default>
+      <summary>Barrier Slide Prevention</summary>
+      <description>
+        Determine algorithm used to calculate pressure when movement is not directly
+        across barrier.
+        
+        Harder the level, the more the movement needs to be directly across barrier.
       </description>
     </key>
   </schema>

@@ -512,6 +512,10 @@ class BarrierActivation {
       'changed::barrier-pressure-timeout',
       this._updateTimeout.bind(this)
     );
+    this._bpSlidePreventionChangedId = gsettings.connect(
+      'changed::barrier-slide-prevention',
+      this._updateSlidePrevention.bind(this)
+    );
 
     this._updateBarrier();
   }
@@ -521,6 +525,7 @@ class BarrierActivation {
     this._gsettings.disconnect(this._barrierEdgeChangedId);
     this._gsettings.disconnect(this._bpThresholdChangedId);
     this._gsettings.disconnect(this._bpTimeoutChangedId);
+    this._gsettings.disconnect(this._bpSlidePreventionChangedId);
 
     this._destroyBarrier();
   }
@@ -553,6 +558,7 @@ class BarrierActivation {
 
     this._updateThreshold();
     this._updateTimeout();
+    this._updateSlidePrevention();
   }
 
   _updateThreshold() {
@@ -569,6 +575,14 @@ class BarrierActivation {
     }
     const timeout = this._gsettings.get_int('barrier-pressure-timeout');
     this._pressureBarrier.timeout = timeout;
+  }
+
+  _updateSlidePrevention() {
+    if (!this._pressureBarrier) {
+      return;
+    }
+    const value = this._gsettings.get_enum('barrier-slide-prevention');
+    this._pressureBarrier.slidePrevention = value;
   }
 
   _destroyBarrier() {
@@ -649,12 +663,20 @@ class BarrierActivation {
   }
 }
 
+const SlidePrevention = {
+  NONE: 0,
+  SOFT: 1,
+  MEDIUM: 2,
+  HARD: 3
+};
+
 class PressureBarrier {
   constructor(barrier, threshold = 100, timeout = 100) {
     this._barrier = barrier;
     this._horizontal = barrier.y1 === barrier.y2;
     this.threshold = threshold;
     this.timeout = timeout;
+    this.slidePrevention = SlidePrevention.MEDIUM;
 
     this._expire = 0;
     this._pressure = 0;
@@ -679,9 +701,7 @@ class PressureBarrier {
       this._expire = event.time + this.timeout;
       this._pressure = 0;
     }
-    const across = this._distanceAcross(event);
-    const along = this._distanceAlong(event);
-    this._pressure += along > 1 ? across / along : across;
+    this._pressure += this._eventPressure(event);
     if (this._pressure >= this.threshold) {
       _log && _log(`Barrier trigger, pressure: ${this._pressure}, time: ${(
         event.time + this.timeout - this._expire
@@ -695,6 +715,26 @@ class PressureBarrier {
     //    else if (this.timeout <= 0) {
     //      this._barrier.release(event);
     //    }
+  }
+
+  _eventPressure(event) {
+    const across = this._distanceAcross(event);
+    const along = this._distanceAlong(event);
+    let pressure = across;
+    switch (this.slidePrevention) {
+      case SlidePrevention.SOFT:
+        pressure = across - along;
+        break;
+      case SlidePrevention.MEDIUM:
+        pressure = across - along * Math.PI / 2;
+        break;
+      case SlidePrevention.HARD:
+        pressure = along > 1 ? across / along : across;
+        break;
+    }
+    _log && _log(`Pressure: ${this._pressure}, `
+      + `across: ${across}, along: ${along}, delta: ${pressure}`);
+    return pressure;
   }
 
   _distanceAcross(event) {
