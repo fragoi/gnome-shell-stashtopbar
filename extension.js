@@ -703,9 +703,10 @@ class PressureBarrier {
     }
     this._pressure += this._eventPressure(event);
     if (this._pressure >= this.threshold) {
-      _log && _log(`Barrier trigger, pressure: ${this._pressure}, time: ${(
-        event.time + this.timeout - this._expire
-      )}`);
+      if (_log) {
+        const time = event.time + this.timeout - this._expire;
+        _log(`Barrier trigger, pressure: ${this._pressure}, time: ${time}`);
+      }
       this._hit = true;
       this.onHit();
     }
