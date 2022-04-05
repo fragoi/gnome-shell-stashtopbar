@@ -627,12 +627,12 @@ class BarrierActivation {
   }
 
   _barrierProps() {
-    const edge = this._gsettings.get_enum('barrier-edge');
+    let edge = this._gsettings.get_enum('barrier-edge');
     if (edge === Edge.NONE) {
       return;
     }
 
-    /* Use same monitor of the actor */
+    /* use same monitor of the actor */
     const actor = this._talloc.actor;
     const monitor = Main.layoutManager.findMonitorForActor(actor);
     if (!monitor) {
@@ -643,6 +643,18 @@ class BarrierActivation {
     const y1 = monitor.y;
     const x2 = x1 + monitor.width;
     const y2 = y1 + monitor.height;
+
+    if (edge === Edge.AUTO) {
+      /* calculate relative position of actor with respect to monitor */
+      const [x, y] = actor.get_transformed_position();
+      const [w, h] = actor.get_transformed_size();
+      edge = _relativeEdge({ x1, y1, x2, y2 }, {
+        x1: x,
+        y1: y,
+        x2: x + w,
+        y2: y + h
+      });
+    }
 
     switch (edge) {
       case Edge.TOP:
