@@ -3,12 +3,12 @@
 <schemalist>
 
   <enum id="com.github.fragoi.stashtopbar.Edge">
-    <value nick="none" value="-2" />
+    <value nick="none" value="0" />
     <value nick="auto" value="-1" />
-    <value nick="top" value="0" />
-    <value nick="right" value="1" />
-    <value nick="bottom" value="2" />
-    <value nick="left" value="3" />
+    <value nick="top" value="1" />
+    <value nick="right" value="2" />
+    <value nick="bottom" value="4" />
+    <value nick="left" value="8" />
   </enum>
 
   <enum id="com.github.fragoi.stashtopbar.SlidePrevention">

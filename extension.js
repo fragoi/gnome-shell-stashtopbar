@@ -17,12 +17,12 @@ const ActivationFlags = {
 };
 
 const Edge = {
-  NONE: -2,
+  NONE: 0,
   AUTO: -1,
-  TOP: 0,
-  RIGHT: 1,
-  BOTTOM: 2,
-  LEFT: 3
+  TOP: 1,
+  RIGHT: 2,
+  BOTTOM: 4,
+  LEFT: 8
 };
 
 var _log = undefined;
