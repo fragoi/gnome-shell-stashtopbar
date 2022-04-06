@@ -42,6 +42,10 @@ function _activationFlagsToString(flags) {
   return string;
 }
 
+function _boxToString({ x1, y1, x2, y2 }) {
+  return `[${x1},${y1},${x2},${y2}]`;
+}
+
 function _relativeEdge(boxA, boxB) {
   const { x1: x, y1: y } = boxA;
   const w = (boxA.x2 - x) || 1;
@@ -100,16 +104,10 @@ class Extension {
 
     this._talloc = new TransformedAllocation(this._offcanvas);
     this._talloc.connect('allocation-changed', () => {
-      if (_log) {
-        const { x1, y1, x2, y2 } = this._talloc.allocation;
-        _log(`Allocation changed: [${x1},${y1},${x2},${y2}]`);
-      }
+      _log && _log(`Allocation changed: ${_boxToString(this._talloc.allocation)}`);
     });
     this._talloc.connect('transformed-changed', () => {
-      if (_log) {
-        const { x1, y1, x2, y2 } = this._talloc;
-        _log(`Transformed changed: [${x1},${y1},${x2},${y2}]`);
-      }
+      _log && _log(`Transformed changed: ${_boxToString(this._talloc)}`);
     });
 
     this._animation = new OffcanvasAnimation(this._offcanvas, this._talloc);
@@ -393,10 +391,7 @@ class TransformedAllocation {
     this._setValues(allocated, this._actor.get_allocation_box());
     this.__allocated = allocated;
     this.__allocation = { ...allocated };
-    if (_log) {
-      const { x1, y1, x2, y2 } = allocated;
-      _log(`Allocation initialized: [${x1},${y1},${x2},${y2}]`);
-    }
+    _log && _log(`Allocation initialized: ${_boxToString(allocated)}`);
   }
 
   _setValues(object, values) {
@@ -632,7 +627,7 @@ class BarrierActivation {
       return;
     }
 
-    /* use same monitor of the actor */
+    /* use same monitor of actor */
     const actor = this._talloc.actor;
     const monitor = Main.layoutManager.findMonitorForActor(actor);
     if (!monitor) {
@@ -745,10 +740,9 @@ class PressureBarrier {
     }
     this._pressure += this._eventPressure(event);
     if (this._pressure >= this.threshold) {
-      if (_log) {
-        const time = event.time + this.timeout - this._expire;
-        _log(`Barrier trigger, pressure: ${this._pressure}, time: ${time}`);
-      }
+      _log && _log(`Barrier trigger, pressure: ${this._pressure}, time: ${(
+        event.time + this.timeout - this._expire
+      )}`);
       this._hit = true;
       this.onHit();
     }
@@ -930,10 +924,7 @@ const CanvasConstraint = GObject.registerClass(
           break;
       }
 
-      if (_log) {
-        const { x1, y1, x2, y2 } = allocation;
-        _log(`Constraint updated allocation: [${x1},${y1},${x2},${y2}]`);
-      }
+      _log && _log(`Constraint updated allocation: ${_boxToString(allocation)}`);
     }
 
     _queueRelayout() {
