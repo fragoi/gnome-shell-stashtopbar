@@ -95,14 +95,14 @@ class Extension {
 
     this._fullscreenTrap = new FullscreenTrap(panelBox);
 
-    this._offcanvas = new Clutter.Actor({ reactive: true });
+    this._actor = new Clutter.Actor({ reactive: true });
 
-    Main.layoutManager.addChrome(this._offcanvas);
+    Main.layoutManager.addChrome(this._actor);
 
     panelBox.remove_child(panel);
-    this._offcanvas.add_child(panel);
+    this._actor.add_child(panel);
 
-    this._talloc = new TransformedAllocation(this._offcanvas);
+    this._talloc = new TransformedAllocation(this._actor);
     this._talloc.connect('allocation-changed', () => {
       _log && _log(`Allocation changed: ${_boxToString(this._talloc.allocation)}`);
     });
@@ -110,7 +110,7 @@ class Extension {
       _log && _log(`Transformed changed: ${_boxToString(this._talloc)}`);
     });
 
-    this._animation = new OffcanvasAnimation(this._offcanvas, this._talloc);
+    this._animation = new OffcanvasAnimation(this._actor, this._talloc);
 
     this._activator = new Activator();
     this._activator.onActiveChanged = () => {
@@ -124,7 +124,7 @@ class Extension {
 
     this._destroyables = [];
 
-    this._destroyables.push(new HoverActivation(this._offcanvas, this._activator));
+    this._destroyables.push(new HoverActivation(this._actor, this._activator));
     this._destroyables.push(new BarrierActivation(
       this._talloc,
       this._gsettings,
@@ -150,7 +150,7 @@ class Extension {
   }
 
   _deactivateOnEnable() {
-    const actor = this._offcanvas;
+    const actor = this._actor;
     if (!actor) {
       return;
     }
@@ -193,13 +193,13 @@ class Extension {
     this._talloc.destroy();
     this._talloc = null;
 
-    this._offcanvas.remove_child(panel);
+    this._actor.remove_child(panel);
     panelBox.add_child(panel);
 
-    Main.layoutManager.removeChrome(this._offcanvas);
+    Main.layoutManager.removeChrome(this._actor);
 
-    this._offcanvas.destroy();
-    this._offcanvas = null;
+    this._actor.destroy();
+    this._actor = null;
 
     this._fullscreenTrap.destroy();
     this._fullscreenTrap = null;
