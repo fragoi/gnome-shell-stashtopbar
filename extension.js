@@ -123,6 +123,8 @@ class Extension {
       this._activator
     ));
     this._destroyables.push(new OverviewActivation(Main.overview, this._activator));
+    this._destroyables.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
+    this._destroyables.push(new FullscreenTrap(this._actor));
 
     for (const p in panel.statusArea) {
       const actor = panel.statusArea[p];
@@ -132,9 +134,6 @@ class Extension {
         this._destroyables.push(new MenuRelayout(this._talloc, actor.menu));
       }
     }
-
-    this._destroyables.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
-    this._destroyables.push(new FullscreenTrap(this._actor));
 
     this._deactivateOnEnable();
 
