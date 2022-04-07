@@ -93,8 +93,6 @@ class Extension {
 
     this._gsettings = ExtensionUtils.getSettings(GSETTINGS_ID);
 
-    this._fullscreenTrap = new FullscreenTrap(panelBox);
-
     this._actor = new Clutter.Actor({ reactive: true });
 
     Main.layoutManager.addChrome(this._actor);
@@ -142,6 +140,7 @@ class Extension {
     }
 
     this._destroyables.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
+    this._destroyables.push(new FullscreenTrap(this._actor));
 
     this._deactivateOnEnable();
 
@@ -200,9 +199,6 @@ class Extension {
 
     this._actor.destroy();
     this._actor = null;
-
-    this._fullscreenTrap.destroy();
-    this._fullscreenTrap = null;
 
     this._gsettings = null;
 
