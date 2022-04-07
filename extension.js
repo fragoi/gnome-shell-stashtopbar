@@ -101,12 +101,6 @@ class Extension {
     this._actor.add_child(panel);
 
     this._talloc = new TransformedAllocation(this._actor);
-    this._talloc.connect('allocation-changed', () => {
-      _log && _log(`Allocation changed: ${_boxToString(this._talloc.allocation)}`);
-    });
-    this._talloc.connect('transformed-changed', () => {
-      _log && _log(`Transformed changed: ${_boxToString(this._talloc)}`);
-    });
 
     this._animation = new OffcanvasAnimation(this._actor, this._talloc);
 
@@ -402,10 +396,12 @@ class TransformedAllocation {
   }
 
   _allocationChanged() {
+    _log && _log(`Allocation changed: ${_boxToString(this.allocation)}`);
     this.emit('allocation-changed');
   }
 
   _transformedChanged() {
+    _log && _log(`Transformed changed: ${_boxToString(this)}`);
     this.emit('transformed-changed');
   }
 }
