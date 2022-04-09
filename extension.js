@@ -114,26 +114,31 @@ class Extension {
       )}]`);
     };
 
-    this._destroyables = [];
+    this._components = [];
 
-    this._destroyables.push(new HoverActivation(this._actor, this._activator));
-    this._destroyables.push(new BarrierActivation(
+    this._components.push(this._talloc);
+    this._components.push(this._animation);
+
+    this._components.push(new HoverActivation(this._actor, this._activator));
+    this._components.push(new BarrierActivation(
       this._talloc,
       this._gsettings,
       this._activator
     ));
-    this._destroyables.push(new OverviewActivation(Main.overview, this._activator));
-    this._destroyables.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
-    this._destroyables.push(new FullscreenTrap(this._actor));
+    this._components.push(new OverviewActivation(Main.overview, this._activator));
+    this._components.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
+    this._components.push(new FullscreenTrap(this._talloc));
 
     for (const p in panel.statusArea) {
       const actor = panel.statusArea[p];
-      this._destroyables.push(new KeyFocusActivation(actor, this._activator));
+      this._components.push(new KeyFocusActivation(actor, this._activator));
       if (actor.menu) {
-        this._destroyables.push(new MenuActivation(actor.menu, this._activator));
-        this._destroyables.push(new MenuRelayout(this._talloc, actor.menu));
+        this._components.push(new MenuActivation(actor.menu, this._activator));
+        this._components.push(new MenuRelayout(this._talloc, actor.menu));
       }
     }
+
+    this._components.forEach(e => e.enable());
 
     this._deactivateOnEnable();
 
@@ -174,15 +179,11 @@ class Extension {
     const panel = Main.panel;
     const panelBox = Main.layoutManager.panelBox;
 
-    this._destroyables.reverse().forEach(e => e.destroy());
-    this._destroyables = null;
+    this._components.reverse().forEach(e => e.disable());
+    this._components = null;
 
     this._activator = null;
-
-    this._animation.destroy();
     this._animation = null;
-
-    this._talloc.destroy();
     this._talloc = null;
 
     this._actor.remove_child(panel);
@@ -200,6 +201,39 @@ class Extension {
   }
 }
 
+function wire(target, signal, handler) {
+  return new Wire(target, signal, handler);
+}
+
+class Wire {
+  constructor(target, signal, handler) {
+    this._target = target;
+    this._signal = signal;
+    this._handler = handler;
+    this._handlerId = 0;
+  }
+
+  connect() {
+    if (!this._handlerId && this._target) {
+      this._handlerId = this._target.connect(this._signal, this._handler);
+    }
+    return this;
+  }
+
+  disconnect() {
+    if (this._handlerId) {
+      this._target.disconnect(this._handlerId);
+      this._handlerId = 0;
+    }
+  }
+
+  setTarget(target) {
+    this.disconnect();
+    this._target = target;
+    return this;
+  }
+}
+
 class OffcanvasAnimation {
   constructor(actor, talloc) {
     this._actor = actor;
@@ -208,19 +242,18 @@ class OffcanvasAnimation {
     this._active = true;
     this._animating = false;
 
-    this._completedId = actor.connect(
-      'transitions-completed',
-      this._onCompleted.bind(this)
-    );
-    this._transitionId = actor.connect(
-      'notify::translation-y',
-      this._onTransition.bind(this)
-    );
+    this._wires = [
+      wire(actor, 'transitions-completed', this._onCompleted.bind(this)),
+      wire(actor, 'notify::translation-y', this._onTransition.bind(this))
+    ];
   }
 
-  destroy() {
-    this._actor.disconnect(this._completedId);
-    this._actor.disconnect(this._transitionId);
+  enable() {
+    this._wires.forEach(e => e.connect());
+  }
+
+  disable() {
+    this._wires.forEach(e => e.disconnect());
   }
 
   get active() {
@@ -305,7 +338,7 @@ class TransformedAllocation {
     this.__allocated = null;
     this.__allocation = null;
 
-    this._allocationChangedId = actor.connect('notify::allocation', () => {
+    this._wire = wire(actor, 'notify::allocation', () => {
       this._updateAllocation();
     });
 
@@ -316,8 +349,16 @@ class TransformedAllocation {
     }
   }
 
-  destroy() {
-    this._actor.disconnect(this._allocationChangedId);
+  enable() {
+    this._wire.connect();
+
+    if (this._actor.has_allocation()) {
+      this._updateAllocation();
+    }
+  }
+
+  disable() {
+    this._wire.disconnect();
   }
 
   get actor() {
@@ -455,23 +496,30 @@ class HoverActivation {
     };
   }
 
-  destroy() {
-    this._hoverTracker.destroy();
+  enable() {
+    this._hoverTracker.enable();
+  }
+
+  disable() {
+    this._hoverTracker.disable();
   }
 }
 
 class HoverTracker {
   constructor(actor) {
-    this._actor = actor;
     this._hover = false;
-
-    this._enterId = actor.connect('enter-event', this._onEnter.bind(this));
-    this._leaveId = actor.connect('leave-event', this._onLeave.bind(this));
+    this._wires = [
+      wire(actor, 'enter-event', this._onEnter.bind(this)),
+      wire(actor, 'leave-event', this._onLeave.bind(this))
+    ];
   }
 
-  destroy() {
-    this._actor.disconnect(this._enterId);
-    this._actor.disconnect(this._leaveId);
+  enable() {
+    this._wires.forEach(e => e.connect());
+  }
+
+  disable() {
+    this._wires.forEach(e => e.disconnect());
   }
 
   onHoverChanged() { }
@@ -512,36 +560,43 @@ class BarrierActivation {
     this._barrier = null;
     this._pressureBarrier = null;
 
-    this._allocationChangedId = talloc.connect(
-      'allocation-changed',
-      this._updateBarrier.bind(this)
-    );
-    this._barrierEdgeChangedId = gsettings.connect(
-      'changed::barrier-edge',
-      this._updateBarrier.bind(this)
-    );
-    this._bpThresholdChangedId = gsettings.connect(
-      'changed::barrier-pressure-threshold',
-      this._updateThreshold.bind(this)
-    );
-    this._bpTimeoutChangedId = gsettings.connect(
-      'changed::barrier-pressure-timeout',
-      this._updateTimeout.bind(this)
-    );
-    this._bpSlidePreventionChangedId = gsettings.connect(
-      'changed::barrier-slide-prevention',
-      this._updateSlidePrevention.bind(this)
-    );
+    this._wires = [
+      wire(
+        talloc,
+        'allocation-changed',
+        this._updateBarrier.bind(this)
+      ),
+      wire(
+        gsettings,
+        'changed::barrier-edge',
+        this._updateBarrier.bind(this)
+      ),
+      wire(
+        gsettings,
+        'changed::barrier-pressure-threshold',
+        this._updateThreshold.bind(this)
+      ),
+      wire(
+        gsettings,
+        'changed::barrier-pressure-timeout',
+        this._updateTimeout.bind(this)
+      ),
+      wire(
+        gsettings,
+        'changed::barrier-slide-prevention',
+        this._updateSlidePrevention.bind(this)
+      )
+    ];
+  }
+
+  enable() {
+    this._wires.forEach(e => e.connect());
 
     this._updateBarrier();
   }
 
-  destroy() {
-    this._talloc.disconnect(this._allocationChangedId);
-    this._gsettings.disconnect(this._barrierEdgeChangedId);
-    this._gsettings.disconnect(this._bpThresholdChangedId);
-    this._gsettings.disconnect(this._bpTimeoutChangedId);
-    this._gsettings.disconnect(this._bpSlidePreventionChangedId);
+  disable() {
+    this._wires.forEach(e => e.disconnect());
 
     this._destroyBarrier();
   }
@@ -782,42 +837,49 @@ class PressureBarrier {
 
 class OverviewActivation {
   constructor(overview, activator) {
-    this._overview = overview;
-    this._showingId = overview.connect('showing', () => {
-      activator.activate(ActivationFlags.OVERVIEW);
-    });
-    this._hidingId = overview.connect('hiding', () => {
-      activator.deactivate(ActivationFlags.OVERVIEW);
-    });
+    this._wires = [
+      wire(overview, 'showing', () => {
+        activator.activate(ActivationFlags.OVERVIEW);
+      }),
+      wire(overview, 'hiding', () => {
+        activator.deactivate(ActivationFlags.OVERVIEW);
+      })
+    ];
   }
 
-  destroy() {
-    this._overview.disconnect(this._showingId);
-    this._overview.disconnect(this._hidingId);
+  enable() {
+    this._wires.forEach(e => e.connect());
+  }
+
+  disable() {
+    this._wires.forEach(e => e.disconnect());
   }
 }
 
 class KeyFocusActivation {
   constructor(actor, activator) {
-    this._actor = actor;
-    this._keyFocusInId = actor.connect('key-focus-in', () => {
-      activator.activate(ActivationFlags.KEYFOCUS);
-    });
-    this._keyFocusOutId = actor.connect('key-focus-out', () => {
-      activator.deactivate(ActivationFlags.KEYFOCUS);
-    });
+    this._wires = [
+      wire(actor, 'key-focus-in', () => {
+        activator.activate(ActivationFlags.KEYFOCUS);
+      }),
+      wire(actor, 'key-focus-out', () => {
+        activator.deactivate(ActivationFlags.KEYFOCUS);
+      })
+    ];
   }
 
-  destroy() {
-    this._actor.disconnect(this._keyFocusInId);
-    this._actor.disconnect(this._keyFocusOutId);
+  enable() {
+    this._wires.forEach(e => e.connect());
+  }
+
+  disable() {
+    this._wires.forEach(e => e.disconnect());
   }
 }
 
 class MenuActivation {
   constructor(menu, activator) {
-    this._menu = menu;
-    this._openChangedId = menu.connect('open-state-changed', () => {
+    this._wire = wire(menu, 'open-state-changed', () => {
       if (menu.isOpen) {
         activator.activate(ActivationFlags.MENUOPEN);
       } else {
@@ -826,23 +888,30 @@ class MenuActivation {
     });
   }
 
-  destroy() {
-    this._menu.disconnect(this._openChangedId);
+  enable() {
+    this._wire.connect();
+  }
+
+  disable() {
+    this._wire.disconnect();
   }
 }
 
 class MenuRelayout {
   constructor(talloc, menu) {
-    this._talloc = talloc;
-    this._changedId = talloc.connect('transformed-changed', () => {
+    this._wire = wire(talloc, 'transformed-changed', () => {
       if (menu.isOpen && menu.actor) {
         menu.actor.queue_relayout();
       }
     });
   }
 
-  destroy() {
-    this._talloc.disconnect(this._changedId);
+  enable() {
+    this._wire.connect();
+  }
+
+  disable() {
+    this._wire.disconnect();
   }
 }
 
@@ -850,11 +919,24 @@ class MessageTrayRelayout {
   constructor(talloc, messageTray) {
     this._messageTray = messageTray;
     this._constraint = new CanvasConstraint(talloc);
-    messageTray.add_constraint(this._constraint);
   }
 
-  destroy() {
+  enable() {
+    if (this._enabled()) {
+      return;
+    }
+    this._messageTray.add_constraint(this._constraint);
+  }
+
+  disable() {
+    if (!this._enabled()) {
+      return;
+    }
     this._messageTray.remove_constraint(this._constraint);
+  }
+
+  _enabled() {
+    return this._messageTray.get_constraints().includes(this._constraint);
   }
 }
 
@@ -942,8 +1024,33 @@ const FullscreenTrap_TRACKED = Symbol('tracked');
  * only when a window has gone fullscreen and it is currently focused.
  */
 class FullscreenTrap {
-  constructor(actor) {
-    /* Use same monitor of the actor */
+  constructor(talloc) {
+    this._talloc = talloc;
+
+    this._actor = null;
+    this._active = false;
+
+    this._wires = [
+      wire(
+        global.display,
+        'in-fullscreen-changed',
+        this._onInFullscreenChanged.bind(this)
+      ),
+      wire(
+        global.display,
+        'notify::focus-window',
+        this._onFocusWindowChanged.bind(this)
+      )
+    ];
+  }
+
+  enable() {
+    if (this._actor) {
+      return;
+    }
+
+    /* Use same monitor of actor */
+    const actor = this._talloc.actor;
     const monitor = Main.layoutManager.findMonitorForActor(actor) || {
       x: 0, y: 0, width: actor.width
     };
@@ -954,27 +1061,22 @@ class FullscreenTrap {
       width: monitor.width,
       height: 0
     });
-    this._active = false;
 
     Main.layoutManager.addChrome(this._actor, {
       affectsInputRegion: false,
       affectsStruts: true
     });
 
-    this._ifcId = global.display.connect(
-      'in-fullscreen-changed',
-      this._onInFullscreenChanged.bind(this)
-    );
-    this._fwcId = global.display.connect(
-      'notify::focus-window',
-      this._onFocusWindowChanged.bind(this)
-    );
+    this._wires.forEach(e => e.connect());
   }
 
-  destroy() {
-    global.display.disconnect(this._ifcId);
-    global.display.disconnect(this._fwcId);
+  disable() {
+    if (!this._actor) {
+      return;
+    }
+    this._wires.forEach(e => e.disconnect());
     this._actor.destroy();
+    this._actor = null;
   }
 
   _onInFullscreenChanged() {
