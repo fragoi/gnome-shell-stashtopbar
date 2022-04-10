@@ -837,13 +837,10 @@ class PressureBarrier {
 
 class OverviewActivation {
   constructor(overview, activator) {
+    this._activator = activator;
     this._wires = [
-      wire(overview, 'showing', () => {
-        activator.activate(ActivationFlags.OVERVIEW);
-      }),
-      wire(overview, 'hiding', () => {
-        activator.deactivate(ActivationFlags.OVERVIEW);
-      })
+      wire(overview, 'showing', this._activate.bind(this)),
+      wire(overview, 'hiding', this._deactivate.bind(this))
     ];
   }
 
@@ -853,18 +850,23 @@ class OverviewActivation {
 
   disable() {
     this._wires.forEach(e => e.disconnect());
+  }
+
+  _activate() {
+    this._activator.activate(ActivationFlags.OVERVIEW);
+  }
+
+  _deactivate() {
+    this._activator.deactivate(ActivationFlags.OVERVIEW);
   }
 }
 
 class KeyFocusActivation {
   constructor(actor, activator) {
+    this._activator = activator;
     this._wires = [
-      wire(actor, 'key-focus-in', () => {
-        activator.activate(ActivationFlags.KEYFOCUS);
-      }),
-      wire(actor, 'key-focus-out', () => {
-        activator.deactivate(ActivationFlags.KEYFOCUS);
-      })
+      wire(actor, 'key-focus-in', this._activate.bind(this)),
+      wire(actor, 'key-focus-out', this._deactivate.bind(this))
     ];
   }
 
@@ -875,17 +877,24 @@ class KeyFocusActivation {
   disable() {
     this._wires.forEach(e => e.disconnect());
   }
+
+  _activate() {
+    this._activator.activate(ActivationFlags.KEYFOCUS);
+  }
+
+  _deactivate() {
+    this._activator.deactivate(ActivationFlags.KEYFOCUS);
+  }
 }
 
 class MenuActivation {
   constructor(menu, activator) {
-    this._wire = wire(menu, 'open-state-changed', () => {
-      if (menu.isOpen) {
-        activator.activate(ActivationFlags.MENUOPEN);
-      } else {
-        activator.deactivate(ActivationFlags.MENUOPEN);
-      }
-    });
+    this._activator = activator;
+    this._wire = wire(
+      menu,
+      'open-state-changed',
+      this._onOpenChanged.bind(this)
+    );
   }
 
   enable() {
@@ -894,16 +903,25 @@ class MenuActivation {
 
   disable() {
     this._wire.disconnect();
+  }
+
+  _onOpenChanged(menu) {
+    if (menu.isOpen) {
+      this._activator.activate(ActivationFlags.MENUOPEN);
+    } else {
+      this._activator.deactivate(ActivationFlags.MENUOPEN);
+    }
   }
 }
 
 class MenuRelayout {
   constructor(talloc, menu) {
-    this._wire = wire(talloc, 'transformed-changed', () => {
-      if (menu.isOpen && menu.actor) {
-        menu.actor.queue_relayout();
-      }
-    });
+    this._menu = menu;
+    this._wire = wire(
+      talloc,
+      'transformed-changed',
+      this._relayout.bind(this)
+    );
   }
 
   enable() {
@@ -912,6 +930,13 @@ class MenuRelayout {
 
   disable() {
     this._wire.disconnect();
+  }
+
+  _relayout() {
+    const menu = this._menu;
+    if (menu.isOpen && menu.actor) {
+      menu.actor.queue_relayout();
+    }
   }
 }
 
