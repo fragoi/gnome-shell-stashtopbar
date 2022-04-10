@@ -942,8 +942,8 @@ class MenuRelayout {
 
 class MessageTrayRelayout {
   constructor(talloc, messageTray) {
-    this._messageTray = messageTray;
     this._constraint = new CanvasConstraint(talloc);
+    this._messageTray = messageTray;
   }
 
   enable() {
@@ -970,32 +970,18 @@ const CanvasConstraint = GObject.registerClass(
     _init(talloc) {
       super._init();
       this._talloc = talloc;
-      this._changedId = 0;
-    }
-
-    _connect() {
-      if (this._changedId) {
-        return;
-      }
-      this._changedId = this._talloc.connect(
+      this._wire = wire(
+        talloc,
         'transformed-changed',
         this._queueRelayout.bind(this)
       );
     }
 
-    _disconnect() {
-      if (!this._changedId) {
-        return;
-      }
-      this._talloc.disconnect(this._changedId);
-      this._changedId = 0;
-    }
-
     vfunc_set_actor(actor) {
       if (actor) {
-        this._connect();
+        this._wire.connect();
       } else {
-        this._disconnect();
+        this._wire.disconnect();
       }
       super.vfunc_set_actor(actor);
     }
