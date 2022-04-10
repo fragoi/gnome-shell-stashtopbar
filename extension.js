@@ -1043,6 +1043,11 @@ class FullscreenTrap {
 
     this._wires = [
       wire(
+        talloc,
+        'allocation-changed',
+        this._onAllocationChanged.bind(this)
+      ),
+      wire(
         global.display,
         'in-fullscreen-changed',
         this._onInFullscreenChanged.bind(this)
@@ -1060,11 +1065,11 @@ class FullscreenTrap {
       return;
     }
 
-    /* Use same monitor of actor */
+    /* Try use same monitor of actor */
     const actor = this._talloc.actor;
-    const monitor = Main.layoutManager.findMonitorForActor(actor) || {
-      x: 0, y: 0, width: actor.width
-    };
+    const monitor = Main.layoutManager.findMonitorForActor(actor)
+      || Main.layoutManager.primaryMonitor
+      || { x: 0, y: 0, width: actor.width };
 
     this._actor = new Clutter.Actor({
       x: monitor.x,
@@ -1090,10 +1095,26 @@ class FullscreenTrap {
     this._actor = null;
   }
 
+  _onAllocationChanged() {
+    const actor = this._talloc.actor;
+    const monitor = Main.layoutManager.findMonitorForActor(actor);
+    if (!monitor) {
+      return;
+    }
+
+    /* Move on same monitor of actor
+     * I'm assuming here that setting the same data does not cause any event
+     * to be fired or change in position or size, I should check this however */
+    this._actor.x = monitor.x;
+    this._actor.y = monitor.y;
+    this._actor.width = monitor.width;
+  }
+
   _onInFullscreenChanged() {
     if (this._active) {
       return;
     }
+
     /* maybe I should check that the monitor of the actor is fullscreen
      * to avoid tracking windows on other monitors, but what if the window
      * is then moved on this monitor? Need to check with more monitors */
