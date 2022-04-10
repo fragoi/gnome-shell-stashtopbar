@@ -558,7 +558,8 @@ class BarrierActivation {
     this._activator = activator;
 
     this._barrier = null;
-    this._pressureBarrier = null;
+    this._pressureBarrier = new PressureBarrier();
+    this._pressureBarrier.onHit = this._activate.bind(this);
 
     this._wires = [
       wire(
@@ -593,6 +594,10 @@ class BarrierActivation {
     this._wires.forEach(e => e.connect());
 
     this._updateBarrier();
+
+    this._updateThreshold();
+    this._updateTimeout();
+    this._updateSlidePrevention();
   }
 
   disable() {
@@ -624,44 +629,30 @@ class BarrierActivation {
       display: global.display,
       ...props
     });
-    this._pressureBarrier = new PressureBarrier(this._barrier);
-    this._pressureBarrier.onHit = this._activate.bind(this);
-
-    this._updateThreshold();
-    this._updateTimeout();
-    this._updateSlidePrevention();
+    this._pressureBarrier.setBarrier(this._barrier);
   }
 
   _updateThreshold() {
-    if (!this._pressureBarrier) {
-      return;
-    }
-    const threshold = this._gsettings.get_int('barrier-pressure-threshold');
-    this._pressureBarrier.threshold = threshold;
+    this._pressureBarrier.threshold = this._gsettings.get_int(
+      'barrier-pressure-threshold'
+    );
   }
 
   _updateTimeout() {
-    if (!this._pressureBarrier) {
-      return;
-    }
-    const timeout = this._gsettings.get_int('barrier-pressure-timeout');
-    this._pressureBarrier.timeout = timeout;
+    this._pressureBarrier.timeout = this._gsettings.get_int(
+      'barrier-pressure-timeout'
+    );
   }
 
   _updateSlidePrevention() {
-    if (!this._pressureBarrier) {
-      return;
-    }
-    const value = this._gsettings.get_enum('barrier-slide-prevention');
-    this._pressureBarrier.slidePrevention = value;
+    this._pressureBarrier.slidePrevention = this._gsettings.get_enum(
+      'barrier-slide-prevention'
+    );
   }
 
   _destroyBarrier() {
-    if (this._pressureBarrier) {
-      this._pressureBarrier.destroy();
-      this._pressureBarrier = null;
-    }
     if (this._barrier) {
+      this._pressureBarrier.setBarrier(null);
       this._barrier.destroy();
       this._barrier = null;
     }
@@ -754,24 +745,31 @@ const SlidePrevention = {
 };
 
 class PressureBarrier {
-  constructor(barrier, threshold = 100, timeout = 100) {
-    this._barrier = barrier;
-    this._horizontal = barrier.y1 === barrier.y2;
+  constructor(threshold = 100, timeout = 100) {
     this.threshold = threshold;
     this.timeout = timeout;
     this.slidePrevention = SlidePrevention.MEDIUM;
+
+    this._horizontal = false;
 
     this._expire = 0;
     this._pressure = 0;
     this._hit = false;
 
-    this._hitId = barrier.connect('hit', this._onBarrierHit.bind(this));
-    this._leftId = barrier.connect('left', this._onBarrierLeft.bind(this));
+    this._wires = [
+      wire(null, 'hit', this._onBarrierHit.bind(this)),
+      wire(null, 'left', this._onBarrierLeft.bind(this))
+    ];
   }
 
-  destroy() {
-    this._barrier.disconnect(this._hitId);
-    this._barrier.disconnect(this._leftId);
+  setBarrier(barrier) {
+    this._wires.forEach(e => e.disconnect());
+
+    this._wires.forEach(e => e.setTarget(barrier));
+    this._horizontal = barrier && barrier.y1 === barrier.y2;
+    this._reset();
+
+    this._wires.forEach(e => e.connect());
   }
 
   onHit() { }
@@ -829,6 +827,10 @@ class PressureBarrier {
   }
 
   _onBarrierLeft(_barrier, _event) {
+    this._reset();
+  }
+
+  _reset() {
     this._expire = 0;
     this._pressure = 0;
     this._hit = false;
