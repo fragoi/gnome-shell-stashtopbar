@@ -942,8 +942,8 @@ class MenuRelayout {
 
 class MessageTrayRelayout {
   constructor(talloc, messageTray) {
-    this._constraint = new CanvasConstraint(talloc);
     this._messageTray = messageTray;
+    this._constraint = new CanvasConstraint(talloc);
   }
 
   enable() {
@@ -1090,6 +1090,7 @@ class FullscreenTrap {
     if (!this._actor) {
       return;
     }
+
     this._wires.forEach(e => e.disconnect());
     this._actor.destroy();
     this._actor = null;
