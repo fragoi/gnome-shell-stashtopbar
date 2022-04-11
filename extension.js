@@ -98,7 +98,7 @@ class Extension {
 
     this._talloc = new TransformedAllocation(this._actor);
 
-    this._animation = new OffcanvasAnimation(this._actor, this._talloc);
+    this._animation = new OffcanvasAnimation(this._talloc);
 
     this._unredirect = new Unredirect();
 
@@ -229,7 +229,9 @@ class UIChange {
 }
 
 class OffcanvasAnimation {
-  constructor(actor, talloc) {
+  constructor(talloc) {
+    const actor = talloc.actor;
+
     this._actor = actor;
     this._talloc = talloc;
 
