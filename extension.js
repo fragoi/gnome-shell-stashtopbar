@@ -92,17 +92,9 @@ function _relativeEdge(boxA, boxB) {
 
 class Extension {
   enable() {
-    const panel = Main.panel;
-    const panelBox = Main.layoutManager.panelBox;
-
     this._gsettings = ExtensionUtils.getSettings(GSETTINGS_ID);
 
     this._actor = new Clutter.Actor({ reactive: true });
-
-    Main.layoutManager.addChrome(this._actor);
-
-    panelBox.remove_child(panel);
-    this._actor.add_child(panel);
 
     this._talloc = new TransformedAllocation(this._actor);
 
@@ -123,6 +115,8 @@ class Extension {
 
     this._components = [];
 
+    this._components.push(new UIChange(this._actor));
+
     this._components.push(this._talloc);
     this._components.push(this._animation);
 
@@ -135,6 +129,7 @@ class Extension {
     this._components.push(new OverviewActivation(Main.overview, this._activator));
     this._components.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
 
+    const panel = Main.panel;
     for (const p in panel.statusArea) {
       const actor = panel.statusArea[p];
       this._components.push(new KeyFocusActivation(actor, this._activator));
@@ -182,20 +177,12 @@ class Extension {
   }
 
   disable() {
-    const panel = Main.panel;
-    const panelBox = Main.layoutManager.panelBox;
-
     this._components.reverse().forEach(e => e.disable());
     this._components = null;
 
     this._activator = null;
     this._animation = null;
     this._talloc = null;
-
-    this._actor.remove_child(panel);
-    panelBox.add_child(panel);
-
-    Main.layoutManager.removeChrome(this._actor);
 
     this._actor.destroy();
     this._actor = null;
@@ -204,6 +191,40 @@ class Extension {
 
     delete Main.stashTopBar;
     log(`${NAME} disabled`);
+  }
+}
+
+class UIChange {
+  constructor(actor) {
+    this._actor = actor;
+  }
+
+  enable() {
+    const panel = Main.panel;
+    const panelBox = Main.layoutManager.panelBox;
+
+    if (this._actor.contains(panel)) {
+      return;
+    }
+
+    Main.layoutManager.addChrome(this._actor);
+
+    panelBox.remove_child(panel);
+    this._actor.add_child(panel);
+  }
+
+  disable() {
+    const panel = Main.panel;
+    const panelBox = Main.layoutManager.panelBox;
+
+    if (!this._actor.contains(panel)) {
+      return;
+    }
+
+    this._actor.remove_child(panel);
+    panelBox.add_child(panel);
+
+    Main.layoutManager.removeChrome(this._actor);
   }
 }
 
