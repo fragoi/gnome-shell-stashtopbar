@@ -108,7 +108,7 @@ class Extension {
 
     this._animation = new OffcanvasAnimation(this._actor, this._talloc);
 
-    this._unredirect = new UnredirectHelper();
+    this._unredirect = new Unredirect();
 
     this._activator = new Activator();
     this._activator.onActiveChanged = () => {
@@ -1003,7 +1003,7 @@ const CanvasConstraint = GObject.registerClass(
  * on reactive elements).
  * Disabling unredirect fix this.
  */
-class UnredirectHelper {
+class Unredirect {
   constructor() {
     this._disabled = false;
   }
