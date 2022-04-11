@@ -104,8 +104,11 @@ class Extension {
 
     this._animation = new OffcanvasAnimation(this._actor, this._talloc);
 
+    this._unredirect = new UnredirectHelper();
+
     this._activator = new Activator();
     this._activator.onActiveChanged = () => {
+      this._unredirect.setDisabled(this._activator.active);
       this._animation.setActive(this._activator.active);
     };
     this._activator.onFlagsChanged = () => {
@@ -127,7 +130,6 @@ class Extension {
     ));
     this._components.push(new OverviewActivation(Main.overview, this._activator));
     this._components.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
-    this._components.push(new FullscreenTrap(this._talloc));
 
     for (const p in panel.statusArea) {
       const actor = panel.statusArea[p];
@@ -1020,148 +1022,29 @@ const CanvasConstraint = GObject.registerClass(
   }
 );
 
-const FullscreenTrap_TRACKED = Symbol('tracked');
-
 /**
+ * Disable/enable unredirect for display.
+ *
  * On X sessions some applications (most notably media players, for ex VLC) after going
  * fullscreen for a while, when leaving fullscreen and their window geometry is the same
  * of the screen (so when they are maximized) they not allow elements to be painted on
  * top of the window, causing the panel to be invisible (still usable however if clicking
  * on reactive elements).
- * This seems to be related to the window geometry being the same size of the screen.
- * The only solution found so far is to modify the "struts" of the workspace so that
- * the working area of the workspace is smaller than the screen.
- * This is already managed by "addChrome" method of layout manager, passing the proper
- * parameter.
- * What this class do is adding an actor that affects the struts of the workspace by 1px,
- * only when a window has gone fullscreen and it is currently focused.
+ * Disabling unredirect fix this.
  */
-class FullscreenTrap {
-  constructor(talloc) {
-    this._talloc = talloc;
-
-    this._actor = null;
-    this._active = false;
-
-    this._wires = [
-      wire(
-        talloc,
-        'allocation-changed',
-        this._onAllocationChanged.bind(this)
-      ),
-      wire(
-        global.display,
-        'in-fullscreen-changed',
-        this._onInFullscreenChanged.bind(this)
-      ),
-      wire(
-        global.display,
-        'notify::focus-window',
-        this._onFocusWindowChanged.bind(this)
-      )
-    ];
+class UnredirectHelper {
+  constructor() {
+    this._disabled = false;
   }
 
-  enable() {
-    if (this._actor) {
-      return;
-    }
-
-    /* Try use same monitor of actor */
-    const actor = this._talloc.actor;
-    const monitor = Main.layoutManager.findMonitorForActor(actor)
-      || Main.layoutManager.primaryMonitor
-      || { x: 0, y: 0, width: actor.width };
-
-    this._actor = new Clutter.Actor({
-      x: monitor.x,
-      y: monitor.y,
-      width: monitor.width,
-      height: 0
-    });
-
-    Main.layoutManager.addChrome(this._actor, {
-      affectsInputRegion: false,
-      affectsStruts: true
-    });
-
-    this._wires.forEach(e => e.connect());
-  }
-
-  disable() {
-    if (!this._actor) {
-      return;
-    }
-
-    this._wires.forEach(e => e.disconnect());
-    this._actor.destroy();
-    this._actor = null;
-  }
-
-  _onAllocationChanged() {
-    const actor = this._talloc.actor;
-    const monitor = Main.layoutManager.findMonitorForActor(actor);
-    if (!monitor) {
-      return;
-    }
-
-    /* Move on same monitor of actor
-     * I'm assuming here that setting the same data does not cause any event
-     * to be fired or change in position or size, I should check this however */
-    this._actor.x = monitor.x;
-    this._actor.y = monitor.y;
-    this._actor.width = monitor.width;
-  }
-
-  _onInFullscreenChanged() {
-    if (this._active) {
-      return;
-    }
-
-    /* maybe I should check that the monitor of the actor is fullscreen
-     * to avoid tracking windows on other monitors, but what if the window
-     * is then moved on this monitor? Need to check with more monitors */
-    //    const monitor = Main.layoutManager.findMonitorForActor(this._actor);
-    //    if (!monitor.inFullscreen) {
-    //      return;
-    //    }
-    const win = global.display.focus_window;
-    if (win && win.is_fullscreen()) {
-      this._trackWindow(win);
-      this._setActive(true);
-    }
-  }
-
-  _onFocusWindowChanged() {
-    const win = global.display.focus_window;
-    const tracked = !!win && this._isWindowTracked(win);
-    this._setActive(tracked);
-  }
-
-  _isWindowTracked(win) {
-    return !!win[FullscreenTrap_TRACKED];
-  }
-
-  _trackWindow(win) {
-    win[FullscreenTrap_TRACKED] = true;
-  }
-
-  _untrackWindow(win) {
-    delete win[FullscreenTrap_TRACKED];
-  }
-
-  _setActive(value) {
-    if (this._active !== value) {
-      this._active = value;
-      this._toggle();
-    }
-  }
-
-  _toggle() {
-    if (this._active) {
-      this._actor.set_height(1);
-    } else {
-      this._actor.set_height(0);
+  setDisabled(value) {
+    if (this._disabled !== value) {
+      if (value) {
+        Meta.disable_unredirect_for_display(global.display);
+      } else {
+        Meta.enable_unredirect_for_display(global.display);
+      }
+      this._disabled = value;
     }
   }
 }
