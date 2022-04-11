@@ -1038,13 +1038,14 @@ class UnredirectHelper {
   }
 
   setDisabled(value) {
-    if (this._disabled !== value) {
-      if (value) {
-        Meta.disable_unredirect_for_display(global.display);
-      } else {
-        Meta.enable_unredirect_for_display(global.display);
-      }
-      this._disabled = value;
+    if (this._disabled === value) {
+      return;
     }
+    if (value) {
+      Meta.disable_unredirect_for_display(global.display);
+    } else {
+      Meta.enable_unredirect_for_display(global.display);
+    }
+    this._disabled = value;
   }
 }
