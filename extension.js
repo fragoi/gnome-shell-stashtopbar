@@ -576,6 +576,11 @@ class BarrierActivation {
       ),
       wire(
         gsettings,
+        'changed::barrier-slide-prevention',
+        this._updateSlidePrevention.bind(this)
+      ),
+      wire(
+        gsettings,
         'changed::barrier-pressure-threshold',
         this._updateThreshold.bind(this)
       ),
@@ -583,11 +588,6 @@ class BarrierActivation {
         gsettings,
         'changed::barrier-pressure-timeout',
         this._updateTimeout.bind(this)
-      ),
-      wire(
-        gsettings,
-        'changed::barrier-slide-prevention',
-        this._updateSlidePrevention.bind(this)
       )
     ];
   }
@@ -597,9 +597,9 @@ class BarrierActivation {
 
     this._updateBarrier();
 
+    this._updateSlidePrevention();
     this._updateThreshold();
     this._updateTimeout();
-    this._updateSlidePrevention();
   }
 
   disable() {
@@ -634,6 +634,12 @@ class BarrierActivation {
     this._pressureBarrier.setBarrier(this._barrier);
   }
 
+  _updateSlidePrevention() {
+    this._pressureBarrier.slidePrevention = this._gsettings.get_enum(
+      'barrier-slide-prevention'
+    );
+  }
+
   _updateThreshold() {
     this._pressureBarrier.threshold = this._gsettings.get_int(
       'barrier-pressure-threshold'
@@ -643,12 +649,6 @@ class BarrierActivation {
   _updateTimeout() {
     this._pressureBarrier.timeout = this._gsettings.get_int(
       'barrier-pressure-timeout'
-    );
-  }
-
-  _updateSlidePrevention() {
-    this._pressureBarrier.slidePrevention = this._gsettings.get_enum(
-      'barrier-slide-prevention'
     );
   }
 
@@ -748,9 +748,9 @@ const SlidePrevention = {
 
 class PressureBarrier {
   constructor(threshold = 100, timeout = 100) {
+    this.slidePrevention = SlidePrevention.MEDIUM;
     this.threshold = threshold;
     this.timeout = timeout;
-    this.slidePrevention = SlidePrevention.MEDIUM;
 
     this._horizontal = false;
 
