@@ -40,7 +40,7 @@
       <default>100</default>
       <summary>Barrier Pressure Timeout</summary>
       <description>
-        Amount of time in milliseconds during wich pressure is accumulated.
+        Amount of time in milliseconds during which pressure is accumulated.
       </description>
     </key>
     <key name="barrier-slide-prevention"
