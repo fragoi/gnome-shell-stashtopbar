@@ -31,7 +31,10 @@ const Edge = {
   LEFT: 8
 };
 
-var _log = undefined;
+/**
+ * @type {( msg: string )}
+ */
+var _log;
 
 function init() {
   return new Extension();
