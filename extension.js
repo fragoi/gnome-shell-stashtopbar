@@ -5,6 +5,12 @@ const Signals = imports.signals;
 const Main = imports.ui.main;
 
 const ExtensionUtils = imports.misc.extensionUtils;
+const Me = ExtensionUtils.getCurrentExtension();
+
+/**
+ * @type {import('./animations')}
+ */
+const Animations = Me.imports.animations;
 
 const NAME = 'Stash Top Bar';
 const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
@@ -98,7 +104,11 @@ class Extension {
 
     this._talloc = new TransformedAllocation(this._actor);
 
-    this._animation = new OffcanvasAnimation(this._talloc);
+    //    this._animation = new OffcanvasAnimation(this._talloc);
+    this._animation = new Animations.Offcanvas({
+      gsettings: this._gsettings,
+      talloc: this._talloc
+    });
 
     this._unredirect = new Unredirect();
 
