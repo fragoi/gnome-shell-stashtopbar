@@ -3,13 +3,45 @@
  */
 var _log;
 
-var Offcanvas = class {
+/**
+ * Wrapper class for configuring animation.
+ */
+var Wrapper = class {
 
   /**
-   * @todo define talloc type
-   * @param {{ talloc: any }}
+   * @param {Gio.Settings} gsettings - the settings
+   * @param {TransformedAllocation} talloc - the transformed allocation
    */
-  constructor({ talloc }) {
+  constructor(gsettings, talloc) {
+    this._gsettings = gsettings;
+    this._talloc = talloc;
+
+    /* TODO: make configurable */
+    this._animation = new Offcanvas(talloc);
+  }
+
+  enable() {
+    this._animation.enable();
+  }
+
+  disable() {
+    this._animation.disable();
+  }
+
+  /**
+   * @param {boolean} value - the active state
+   */
+  setActive(value) {
+    this._animation.setActive(value);
+  }
+}
+
+class Offcanvas {
+
+  /**
+   * @param {TransformedAllocation} talloc
+   */
+  constructor(talloc) {
     const actor = talloc.actor;
 
     this._actor = actor;
@@ -23,9 +55,6 @@ var Offcanvas = class {
 
   disable() { }
 
-  /**
-   * @param {boolean} value - the active state
-   */
   setActive(value) {
     if (this._active === value) {
       return;
@@ -59,7 +88,7 @@ var Offcanvas = class {
     actor.save_easing_state();
     if (delay)
       actor.set_easing_delay(delay);
-    //    actor.set_easing_duration(3000);
+    //    actor.set_easing_duration(10000);
     actor.translation_y = this._value;
     actor.restore_easing_state();
 

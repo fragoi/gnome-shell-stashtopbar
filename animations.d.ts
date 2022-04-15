@@ -2,5 +2,5 @@
 
 export {
   _log,
-  Offcanvas
+  Wrapper
 }

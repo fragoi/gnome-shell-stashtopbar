@@ -108,10 +108,7 @@ class Extension {
     this._talloc = new TransformedAllocation(this._actor);
 
     //    this._animation = new OffcanvasAnimation(this._talloc);
-    this._animation = new Animations.Offcanvas({
-      gsettings: this._gsettings,
-      talloc: this._talloc
-    });
+    this._animation = new Animations.Wrapper(this._gsettings, this._talloc);
 
     this._unredirect = new Unredirect();
 
