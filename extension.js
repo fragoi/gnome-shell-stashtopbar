@@ -12,6 +12,11 @@ const Me = ExtensionUtils.getCurrentExtension();
  */
 const Animations = Me.imports.animations;
 
+/**
+ * @type {import('./utils')}
+ */
+const { wire } = Me.imports.utils;
+
 const NAME = 'Stash Top Bar';
 const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
 
@@ -38,10 +43,6 @@ var _log;
 
 function init() {
   return new Extension();
-}
-
-function wire(target, signal, handler) {
-  return new Wire(target, signal, handler);
 }
 
 function _activationFlagsToString(flags) {
@@ -1052,34 +1053,5 @@ class Unredirect {
       Meta.enable_unredirect_for_display(global.display);
     }
     this._disabled = value;
-  }
-}
-
-class Wire {
-  constructor(target, signal, handler) {
-    this._target = target;
-    this._signal = signal;
-    this._handler = handler;
-    this._handlerId = 0;
-  }
-
-  connect() {
-    if (!this._handlerId && this._target) {
-      this._handlerId = this._target.connect(this._signal, this._handler);
-    }
-    return this;
-  }
-
-  disconnect() {
-    if (this._handlerId) {
-      this._target.disconnect(this._handlerId);
-      this._handlerId = 0;
-    }
-  }
-
-  setTarget(target) {
-    this.disconnect();
-    this._target = target;
-    return this;
   }
 }
