@@ -114,14 +114,22 @@ class Extension {
     this._unredirect = new Unredirect();
 
     this._activator = new Activator();
+
     this._activator.onActiveChanged = () => {
-      this._unredirect.setDisabled(this._activator.active);
+      if (this._activator.active)
+        this._unredirect.setDisabled(true);
       this._animation.setActive(this._activator.active);
     };
+
     this._activator.onFlagsChanged = () => {
       _log && _log(`Activator flags changed: [${(
         _activationFlagsToString(this._activator.flags)
       )}]`);
+    };
+
+    this._animation.onCompleted = () => {
+      if (!this._activator.active)
+        this._unredirect.setDisabled(false);
     };
 
     this._components = [];
