@@ -1,3 +1,8 @@
+/**
+ * @param target
+ * @param {string} signal
+ * @param {function} handler
+ */
 function wire(target, signal, handler) {
   return new Wire(target, signal, handler);
 }
@@ -22,6 +27,10 @@ class Wire {
       this._target.disconnect(this._handlerId);
       this._handlerId = 0;
     }
+  }
+
+  isConnected() {
+    return !!this._handlerId;
   }
 
   setTarget(target) {
