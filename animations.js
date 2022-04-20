@@ -28,6 +28,9 @@ var Wrapper = class {
 
     /* TODO: make configurable */
     this._animation = new Offcanvas(talloc);
+    this._animation.onCompleted = () => {
+      this.onCompleted();
+    };
   }
 
   enable() {
@@ -44,6 +47,8 @@ var Wrapper = class {
   setActive(value) {
     this._animation.setActive(value);
   }
+
+  onCompleted() { }
 }
 
 class Offcanvas {
@@ -111,6 +116,8 @@ class Offcanvas {
       this._toggle();
     }
   }
+
+  onCompleted() { }
 
   _toggle() {
     _log && _log(`Toggle, active: ${this._active}`);
@@ -257,6 +264,8 @@ class Offcanvas {
      * is emitted only when the actor relayout will be executed (so after this) while
      * this signal will be emitted just now */
     this._talloc.setTranslation(translation);
+
+    this.onCompleted();
   }
 
   _onTransition() {
