@@ -229,7 +229,7 @@ class UIChange {
     const panel = Main.panel;
     const panelBox = Main.layoutManager.panelBox;
 
-    if (!this._actor.contains(panel)) {
+    if (panelBox.contains(panel)) {
       return;
     }
 
