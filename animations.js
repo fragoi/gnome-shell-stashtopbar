@@ -10,6 +10,11 @@ const Me = ExtensionUtils.getCurrentExtension();
  */
 const { wire } = Me.imports.utils;
 
+const AnimationType = {
+  NONE: 0,
+  OFFCANVAS: 1
+};
+
 /**
  * @type {( msg: string )}
  */
@@ -28,26 +33,92 @@ var Wrapper = class {
     this._gsettings = gsettings;
     this._talloc = talloc;
 
-    /* TODO: make configurable */
-    this._animation = new Offcanvas(talloc);
-    this._animation.onCompleted = () => {
-      this.onCompleted();
-    };
+    this._active = true;
+    this._animation = null;
+    this._animationType = 0;
+
+    this._wire = wire(
+      gsettings,
+      'changed::animation-type',
+      this._updateAnimation.bind(this)
+    );
   }
 
   enable() {
-    this._animation.enable();
+    this._wire.connect();
+    this._updateAnimation();
   }
 
   disable() {
-    this._animation.disable();
+    this._wire.disconnect();
+    this._animation && this._animation.disable();
   }
 
   /**
    * @param {boolean} value - the active state
    */
   setActive(value) {
-    this._animation.setActive(value);
+    this._active = value;
+    this._animation && this._animation.setActive(value);
+  }
+
+  onCompleted() { }
+
+  _updateAnimation() {
+    const type = this._gsettings.get_enum('animation-type');
+    if (this._animation && this._animationType === type) {
+      return;
+    }
+    if (this._animation) {
+      this._animation.disable();
+    }
+    this._animation = this._newAnimation(type);
+    this._animationType = type;
+    if (!this._animation) {
+      return;
+    }
+    this._animation.onCompleted = () => this.onCompleted();
+    this._animation.enable();
+    this._animation.setActive(this._active);
+  }
+
+  _newAnimation(type) {
+    switch (type) {
+      case AnimationType.OFFCANVAS:
+        return new Offcanvas(this._talloc);
+    }
+    return new ShowHide(this._talloc.actor);
+  }
+}
+
+/**
+ * This should be the most easy one.
+ * Used as placeholder for no animation.
+ */
+class ShowHide {
+  constructor(actor) {
+    this._actor = actor;
+    this._wasVisible = null;
+  }
+
+  enable() {
+    if (this._wasVisible === null) {
+      this._wasVisible = this._actor.visible;
+    }
+  }
+
+  disable() {
+    if (this._wasVisible !== null) {
+      this._actor.visible = this._wasVisible;
+      this._wasVisible = null;
+    }
+  }
+
+  setActive(value) {
+    if (this._actor.visible !== value) {
+      this._actor.visible = value;
+      this.onCompleted();
+    }
   }
 
   onCompleted() { }

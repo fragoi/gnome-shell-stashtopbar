@@ -1,6 +1,6 @@
 'use strict';
 
-const { GObject, Clutter, Meta } = imports.gi;
+const { Clutter, GLib, GObject, Meta } = imports.gi;
 const Signals = imports.signals;
 const Main = imports.ui.main;
 
@@ -176,7 +176,10 @@ class Extension {
       log('Actor is not mapped, delay deactivation');
       const mappedId = actor.connect('notify::mapped', () => {
         actor.disconnect(mappedId);
-        this._deactivateOnEnable();
+        /* enqueue deactivation when idle */
+        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+          this._deactivateOnEnable();
+        });
       });
       return;
     }
