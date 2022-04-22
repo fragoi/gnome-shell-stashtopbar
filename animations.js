@@ -1,3 +1,5 @@
+'use strict';
+
 const Main = imports.ui.main;
 
 const ExtensionUtils = imports.misc.extensionUtils;
@@ -64,7 +66,7 @@ class Offcanvas {
 
     this._active = true;
     //    this._animating = false;
-    this._hadFixedPosition = null;
+    this._wasFixedPositionSet = null;
 
     this._activeY = 0;
     this._inactiveY = 0;
@@ -84,8 +86,8 @@ class Offcanvas {
   }
 
   enable() {
-    if (this._hadFixedPosition === null) {
-      this._hadFixedPosition = this._actor.get_fixed_position_set();
+    if (this._wasFixedPositionSet === null) {
+      this._wasFixedPositionSet = this._actor.get_fixed_position_set();
     }
     this._wires.forEach(e => e.connect());
     this._update();
@@ -105,9 +107,10 @@ class Offcanvas {
       this._onCompleted();
     }
     /* reset actor status */
-    if (this._hadFixedPosition === false) {
+    if (this._wasFixedPositionSet === false) {
       this._actor.set_fixed_position_set(false);
     }
+    this._wasFixedPositionSet = null;
   }
 
   setActive(value) {
@@ -208,14 +211,13 @@ class Offcanvas {
       //      actor.set_easing_duration(10000);
 
       if (this._shouldChangeY()) {
-        const valueY = this._active
-          ? this._activeY - actor.y
-          : this._inactiveY - actor.y;
+        const targetY = this._active ? this._activeY : this._inactiveY;
+        const translationY = targetY - actor.y;
 
-        _log && _log(`Transition for Y to value: ${valueY}, `
+        _log && _log(`Transition for Y to value: ${translationY}, `
           + `current: ${actor.translation_y}, delay: ${delay}`);
 
-        actor.translation_y = valueY;
+        actor.translation_y = translationY;
       }
 
     } finally {
@@ -269,8 +271,8 @@ class Offcanvas {
   }
 
   _onTransition() {
-    const translation_y = this._actor.translation_y;
-    this._talloc.setTranslation({ y1: translation_y, y2: translation_y });
+    const translationY = this._actor.translation_y;
+    this._talloc.setTranslation({ y1: translationY, y2: translationY });
   }
 
   _update() {
