@@ -200,7 +200,10 @@ class Extension {
     this._components = null;
 
     this._activator = null;
+
+    this._unredirect.setDisabled(false);
     this._unredirect = null;
+
     this._animation = null;
     this._talloc = null;
 
