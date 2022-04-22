@@ -2,6 +2,11 @@
 <!DOCTYPE schemalist SYSTEM "https://gitlab.gnome.org/GNOME/glib/-/raw/HEAD/gio/gschema.dtd">
 <schemalist>
 
+  <enum id="com.github.fragoi.stashtopbar.AnimationType">
+    <value nick="none" value="0" />
+    <value nick="offcanvas" value="1" />
+  </enum>
+
   <enum id="com.github.fragoi.stashtopbar.Edge">
     <value nick="none" value="0" />
     <value nick="auto" value="-1" />
@@ -21,6 +26,14 @@
   <schema
     id="org.gnome.shell.extensions.com-github-fragoi-stashtopbar"
     path="/org/gnome/shell/extensions/com-github-fragoi-stashtopbar/">
+
+    <key name="animation-type" enum="com.github.fragoi.stashtopbar.AnimationType">
+      <default>'offcanvas'</default>
+      <summary>Animation</summary>
+      <description>
+        Animation to use when showing/hiding the panel.
+      </description>
+    </key>
 
     <key name="barrier-edge" enum="com.github.fragoi.stashtopbar.Edge">
       <default>'top'</default>
@@ -54,6 +67,7 @@
         Harder the level, the more the movement needs to be directly across barrier.
       </description>
     </key>
+
   </schema>
 
 </schemalist>
