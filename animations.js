@@ -98,27 +98,32 @@ var Wrapper = class {
 class ShowHide {
   constructor(actor) {
     this._actor = actor;
-    this._wasVisible = null;
+    //    this._wasVisible = null;
   }
 
   enable() {
-    if (this._wasVisible === null) {
-      this._wasVisible = this._actor.visible;
-    }
+    //    if (this._wasVisible === null) {
+    //      this._wasVisible = this._actor.visible;
+    //    }
   }
 
   disable() {
-    if (this._wasVisible !== null) {
-      this._actor.visible = this._wasVisible;
-      this._wasVisible = null;
-    }
+    //    if (this._wasVisible !== null) {
+    //      this._actor.visible = this._wasVisible;
+    //      this._wasVisible = null;
+    //    }
+    this._actor.set_clip_to_allocation(false);
+    this._actor.set_height(-1);
   }
 
   setActive(value) {
-    if (this._actor.visible !== value) {
-      this._actor.visible = value;
-      this.onCompleted();
-    }
+    //    if (this._actor.visible !== value) {
+    //      this._actor.visible = value;
+    //      this.onCompleted();
+    //    }
+    this._actor.set_clip_to_allocation(!value);
+    this._actor.set_height(value ? -1 : 0);
+    this.onCompleted();
   }
 
   onCompleted() { }
