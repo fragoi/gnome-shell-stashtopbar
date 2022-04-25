@@ -1,7 +1,27 @@
+'use strict';
+
+const { GLib } = imports.gi;
+
 /**
- * @param target
- * @param {string} signal
- * @param {function} handler
+ * @param {function} callback - the callback to execute when idle
+ * @returns {number} the ID of the idle source
+ */
+function idleAdd(callback) {
+  return GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, callback);
+}
+
+/**
+ * @param {number} id - the ID of the idle source
+ */
+function idleRemove(id) {
+  GLib.Source.remove(id);
+}
+
+/**
+ * @param target - the GObject-like object to connect to
+ * @param {string} signal - the signal name to connect to
+ * @param {function} handler - the handler to connect
+ * @returns {Wire} a new wire
  */
 function wire(target, signal, handler) {
   return new Wire(target, signal, handler);

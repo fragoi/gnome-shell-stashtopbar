@@ -1,6 +1,6 @@
 'use strict';
 
-const { Clutter, GLib, GObject, Meta } = imports.gi;
+const { Clutter, GObject, Meta } = imports.gi;
 const Signals = imports.signals;
 const Main = imports.ui.main;
 
@@ -15,7 +15,7 @@ const Animations = Me.imports.animations;
 /**
  * @type {import('./utils')}
  */
-const { wire } = Me.imports.utils;
+const { idleAdd, idleRemove, wire } = Me.imports.utils;
 
 const NAME = 'Stash Top Bar';
 const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
@@ -177,9 +177,7 @@ class Extension {
       const mappedId = actor.connect('notify::mapped', () => {
         actor.disconnect(mappedId);
         /* enqueue deactivation when idle */
-        GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-          this._deactivateOnEnable();
-        });
+        idleAdd(() => this._deactivateOnEnable());
       });
       return;
     }
@@ -530,6 +528,8 @@ class HoverActivation {
 class HoverTracker {
   constructor(actor) {
     this._hover = false;
+    this._inside = false;
+    this._idleId = 0;
     this._wires = [
       wire(actor, 'enter-event', this._onEnter.bind(this)),
       wire(actor, 'leave-event', this._onLeave.bind(this))
@@ -542,6 +542,7 @@ class HoverTracker {
 
   disable() {
     this._wires.forEach(e => e.disconnect());
+    this._idleRemove();
   }
 
   onHoverChanged() { }
@@ -558,15 +559,45 @@ class HoverTracker {
   }
 
   _onEnter(_actor, _event) {
+    this._inside = true;
     this._setHover(true);
   }
 
   _onLeave(actor, event) {
+    if (!this._inside) {
+      return;
+    }
     const related = event.get_related();
     if (related && actor.contains(related)) {
       return;
     }
-    this._setHover(false);
+    this._inside = false;
+
+    /* disable is done when idle to avoid spurious leave/enter events
+     * generated for example when WM input regions change.
+     * If an enter event is following this leave event, the inside flag
+     * will be true when idle so nothing will change */
+    this._idleAdd();
+  }
+
+  _idleAdd() {
+    if (this._idleId) {
+      return;
+    }
+    this._idleId = idleAdd(this._onIdle.bind(this));
+  }
+
+  _idleRemove() {
+    if (!this._idleId) {
+      return;
+    }
+    idleRemove(this._idleId);
+    this._idleId = 0;
+  }
+
+  _onIdle() {
+    this._idleId = 0;
+    this._setHover(this._inside);
   }
 }
 
