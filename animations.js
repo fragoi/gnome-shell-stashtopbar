@@ -90,7 +90,7 @@ var Wrapper = class {
       case AnimationType.OFFCANVAS:
         return new Offcanvas(this._talloc);
     }
-    return new Clipped(this._talloc.actor);
+    return new Clipped(this._talloc);
   }
 }
 
@@ -134,8 +134,13 @@ class ShowHide {
  * Cut visible area of the actor.
  */
 class Clipped {
-  constructor(actor) {
-    this._actor = actor;
+
+  /**
+   * @param {TransformedAllocation} talloc
+   */
+  constructor(talloc) {
+    this._talloc = talloc;
+    this._actor = talloc.actor;
     this._hasClip = null;
     /** @type {Array} */
     this._clip = null;
@@ -180,10 +185,12 @@ class Clipped {
     } else {
       this._actor.remove_clip();
     }
+    this._talloc.visible = true;
   }
 
   _deactivate() {
     this._actor.set_clip(0, 0, this._actor.width, 0);
+    this._talloc.visible = false;
   }
 }
 
