@@ -354,6 +354,7 @@ class TransformedAllocation {
   constructor(actor) {
     this._actor = actor;
     this._translation = { x1: 0, y1: 0, x2: 0, y2: 0 };
+    this._visible = true;
     /* lazily initialized */
     this.__allocated = null;
     this.__allocation = null;
@@ -411,6 +412,17 @@ class TransformedAllocation {
     }
   }
 
+  get visible() {
+    return this._visible;
+  }
+
+  set visible(value) {
+    if (this._visible !== value) {
+      this._visible = value;
+      this._visibleChanged();
+    }
+  }
+
   get _allocated() {
     this._ensureAllocation();
     return this.__allocated;
@@ -463,6 +475,11 @@ class TransformedAllocation {
   _transformedChanged() {
     _log && _log(`Transformed changed: ${_boxToString(this)}`);
     this.emit('transformed-changed');
+  }
+
+  _visibleChanged() {
+    _log && _log(`Visible changed: ${this.visible}`);
+    this.emit('visible-changed');
   }
 }
 Signals.addSignalMethods(TransformedAllocation.prototype);
