@@ -51,7 +51,10 @@ var Wrapper = class {
 
   disable() {
     this._wire.disconnect();
-    this._animation && this._animation.disable();
+    if (this._animation) {
+      this._animation.disable();
+      this._animation = null;
+    }
   }
 
   /**
