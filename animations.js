@@ -90,46 +90,101 @@ var Wrapper = class {
       case AnimationType.OFFCANVAS:
         return new Offcanvas(this._talloc);
     }
-    return new ShowHide(this._talloc.actor);
+    return new Clipped(this._talloc.actor);
   }
 }
 
 /**
  * This should be the most easy one.
  * Used as placeholder for no animation.
+ * In fact many things stop working with this:
+ * - keybinding for popup menus
+ * - ctrl+alt+tab for switch between shell components
  */
 class ShowHide {
   constructor(actor) {
     this._actor = actor;
-    //    this._wasVisible = null;
+    this._wasVisible = null;
   }
 
   enable() {
-    //    if (this._wasVisible === null) {
-    //      this._wasVisible = this._actor.visible;
-    //    }
+    if (this._wasVisible === null) {
+      this._wasVisible = this._actor.visible;
+    }
   }
 
   disable() {
-    //    if (this._wasVisible !== null) {
-    //      this._actor.visible = this._wasVisible;
-    //      this._wasVisible = null;
-    //    }
-    this._actor.set_clip_to_allocation(false);
-    this._actor.set_height(-1);
+    if (this._wasVisible !== null) {
+      this._actor.visible = this._wasVisible;
+      this._wasVisible = null;
+    }
   }
 
   setActive(value) {
-    //    if (this._actor.visible !== value) {
-    //      this._actor.visible = value;
-    //      this.onCompleted();
-    //    }
-    this._actor.set_clip_to_allocation(!value);
-    this._actor.set_height(value ? -1 : 0);
+    if (this._actor.visible !== value) {
+      this._actor.visible = value;
+      this.onCompleted();
+    }
+  }
+
+  onCompleted() { }
+}
+
+/**
+ * Cut visible area of the actor.
+ */
+class Clipped {
+  constructor(actor) {
+    this._actor = actor;
+    this._hasClip = null;
+    /** @type {Array} */
+    this._clip = null;
+  }
+
+  enable() {
+    if (this._hasClip !== null) {
+      return;
+    }
+    this._hasClip = this._actor.has_clip;
+    if (this._hasClip) {
+      this._clip = this._actor.get_clip();
+    }
+  }
+
+  disable() {
+    if (this._hasClip === null) {
+      return;
+    }
+    this._activate();
+    this._hasClip = null;
+    this._clip = null;
+  }
+
+  setActive(value) {
+    if (this._hasClip === null) {
+      return;
+    }
+    if (value) {
+      this._activate();
+    } else {
+      this._deactivate();
+    }
     this.onCompleted();
   }
 
   onCompleted() { }
+
+  _activate() {
+    if (this._hasClip) {
+      this._actor.set_clip(...this._clip);
+    } else {
+      this._actor.remove_clip();
+    }
+  }
+
+  _deactivate() {
+    this._actor.set_clip(0, 0, this._actor.width, 0);
+  }
 }
 
 class Offcanvas {
