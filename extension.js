@@ -146,7 +146,7 @@ class Extension {
     this._components = [];
 
     this._components.push(new UIChange(this._actor));
-    this._components.push(new InputRegion(this._talloc));
+    this._components.push(new InputRegionTrigger(this._talloc));
 
     this._components.push(this._talloc);
     this._components.push(this._animation);
@@ -243,13 +243,7 @@ class UIChange {
       return;
     }
 
-    //    Main.layoutManager.addChrome(this._actor, {
-    //      affectsInputRegion: false
-    //    });
-    Main.layoutManager.uiGroup.insert_child_above(
-      this._actor,
-      panelBox
-    );
+    Main.layoutManager.addChrome(this._actor);
 
     panelBox.remove_child(panel);
     this._actor.add_child(panel);
@@ -266,12 +260,11 @@ class UIChange {
     this._actor.remove_child(panel);
     panelBox.add_child(panel);
 
-    //    Main.layoutManager.removeChrome(this._actor);
-    Main.layoutManager.uiGroup.remove_child(this._actor);
+    Main.layoutManager.removeChrome(this._actor);
   }
 }
 
-class InputRegion {
+class InputRegionTrigger {
 
   /**
    * @param {TransformedAllocation} talloc
@@ -291,16 +284,6 @@ class InputRegion {
       return;
     }
     this._actor = new Clutter.Actor();
-
-    //    this._actor.set_background_color(
-    //      Clutter.Color.get_static(Clutter.StaticColor.DARK_GREEN));
-    //    this._actor.connect('allocation-changed',
-    //      () => _log && _log('Allocation changed (input region)'));
-
-    this._actor.add_constraint(new Clutter.BindConstraint({
-      coordinate: Clutter.BindCoordinate.ALL,
-      source: this._talloc.actor
-    }));
 
     Main.layoutManager.addChrome(this._actor);
     Main.layoutManager.uiGroup.set_child_below_sibling(
