@@ -1,5 +1,33 @@
 'use strict';
 
+/* Some notes recollected regarding activations:
+ * 
+ * Never change the panel visibility.
+ * When the panel is not visible some things stop working:
+ * - keybindings for popup menus
+ * - shell components switch via ctrl+alt+tab
+ * and maybe others.
+ * 
+ * Trigger input region refresh:
+ * this can be done by changing the allocation. Visibility is not
+ * an option as per note above.
+ * An additional option is to change the TransformedAllocation
+ * visibility as this will trigger a change on another actor used
+ * precisely for this scope.
+ * 
+ * TransformedAllocation is used for:
+ * - change the panel allocation and make the rest of the extension
+ *   to understant that the change is because of an activation and not
+ *   because the panel has been moved or resized from code outside of
+ *   this extension
+ * - emit the transformed changed event when an activation changes the
+ *   transformed position or size of the panel and wants to make the
+ *   rest of the extension aware of this
+ * - change the visibility to trigger a refresh of the input regions
+ *   when the panel is virtually not visible but it's not possible or
+ *   wanted to change the allocation
+ */
+
 const Main = imports.ui.main;
 
 const ExtensionUtils = imports.misc.extensionUtils;
@@ -90,50 +118,16 @@ var Wrapper = class {
       case AnimationType.OFFCANVAS:
         return new Offcanvas(this._talloc);
     }
-    return new Clipped(this._talloc);
+    return new Scaled(this._talloc);
   }
 }
 
 /**
+ * Scale actor to 0.
  * This should be the most easy one.
  * Used as placeholder for no animation.
- * In fact many things stop working with this:
- * - keybinding for popup menus
- * - ctrl+alt+tab for switch between shell components
  */
-class ShowHide {
-  constructor(actor) {
-    this._actor = actor;
-    this._wasVisible = null;
-  }
-
-  enable() {
-    if (this._wasVisible === null) {
-      this._wasVisible = this._actor.visible;
-    }
-  }
-
-  disable() {
-    if (this._wasVisible !== null) {
-      this._actor.visible = this._wasVisible;
-      this._wasVisible = null;
-    }
-  }
-
-  setActive(value) {
-    if (this._actor.visible !== value) {
-      this._actor.visible = value;
-      this.onCompleted();
-    }
-  }
-
-  onCompleted() { }
-}
-
-/**
- * Cut visible area of the actor.
- */
-class Clipped {
+class Scaled {
 
   /**
    * @param {TransformedAllocation} talloc
@@ -141,32 +135,26 @@ class Clipped {
   constructor(talloc) {
     this._talloc = talloc;
     this._actor = talloc.actor;
-    this._hasClip = null;
-    /** @type {Array} */
-    this._clip = null;
+    this._scaleY = null;
   }
 
   enable() {
-    if (this._hasClip !== null) {
+    if (this._scaleY !== null) {
       return;
     }
-    this._hasClip = this._actor.has_clip;
-    if (this._hasClip) {
-      this._clip = this._actor.get_clip();
-    }
+    this._scaleY = this._actor.scale_y;
   }
 
   disable() {
-    if (this._hasClip === null) {
+    if (this._scaleY === null) {
       return;
     }
     this._activate();
-    this._hasClip = null;
-    this._clip = null;
+    this._scaleY = null;
   }
 
   setActive(value) {
-    if (this._hasClip === null) {
+    if (this._scaleY === null) {
       return;
     }
     if (value) {
@@ -180,16 +168,14 @@ class Clipped {
   onCompleted() { }
 
   _activate() {
-    if (this._hasClip) {
-      this._actor.set_clip(...this._clip);
-    } else {
-      this._actor.remove_clip();
-    }
+    this._actor.scale_y = this._scaleY;
+    this._talloc.setTranslation({ y2: 0 });
     this._talloc.visible = true;
   }
 
   _deactivate() {
-    this._actor.set_clip(0, 0, this._actor.width, 0);
+    this._actor.scale_y = 0;
+    this._talloc.setTranslation({ y2: -this._talloc.y2 });
     this._talloc.visible = false;
   }
 }
