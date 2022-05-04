@@ -813,6 +813,9 @@ class BarrierActivation {
   }
 
   _activate() {
+    if (!this._talloc.actor.visible) {
+      return;
+    }
     this._activator.activate(ActivationFlags.HOVER);
   }
 
