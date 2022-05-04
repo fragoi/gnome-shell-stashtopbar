@@ -28,6 +28,7 @@
  *   wanted to change the allocation
  */
 
+const { Clutter } = imports.gi;
 const Main = imports.ui.main;
 
 const ExtensionUtils = imports.misc.extensionUtils;
@@ -40,7 +41,8 @@ const { wire } = Me.imports.utils;
 
 const AnimationType = {
   NONE: 0,
-  OFFCANVAS: 1
+  OFFCANVAS: 1,
+  FADE: 2
 };
 
 /**
@@ -144,6 +146,8 @@ var Wrapper = class {
     switch (type) {
       case AnimationType.OFFCANVAS:
         return new Offcanvas(this._talloc);
+      case AnimationType.FADE:
+        return new Fade(this._talloc);
     }
     return new Scaled(this._talloc);
   }
@@ -464,5 +468,128 @@ class Offcanvas {
 
     this._activeY = activeY;
     this._inactiveY = inactiveY;
+  }
+}
+
+class Fade {
+
+  /**
+   * @param {TransformedAllocation} talloc
+   */
+  constructor(talloc) {
+    const actor = talloc.actor;
+
+    this._actor = actor;
+    this._talloc = talloc;
+
+    this._active = true;
+    this._opacity = null;
+    this._transition = null;
+
+    /* used for basic housekeeping */
+    this._scaled = new Scaled(talloc);
+  }
+
+  enable() {
+    if (this._opacity !== null) {
+      return;
+    }
+    this._opacity = this._actor.opacity;
+    this._scaled.enable();
+  }
+
+  disable() {
+    if (this._opacity === null) {
+      return;
+    }
+    this._actor.opacity = this._opacity;
+    this._opacity = null;
+    this._scaled.disable();
+  }
+
+  setActive(value) {
+    if (this._active !== value) {
+      this._active = value;
+      this._ease();
+    }
+  }
+
+  onCompleted() { }
+
+  _ease() {
+    if (this._transition) {
+      // TODO: reverse
+    }
+
+    const actor = this._actor;
+
+    //    actor.remove_transition('opacity');
+
+    if (this._active) {
+      this._scaled.setActive(true);
+    }
+
+    const delay = this._active ? 0 : 200;
+    const opacity = this._active ? this._opacity : 0;
+    const mode = Clutter.AnimationMode.LINEAR;
+    //    const mode = this._active
+    //      ? Clutter.AnimationMode.EASE_IN_QUAD
+    //      : Clutter.AnimationMode.EASE_OUT_QUAD;
+
+    actor.save_easing_state();
+    if (delay)
+      actor.set_easing_delay(delay);
+    actor.set_easing_mode(mode);
+    //    actor.set_easing_duration(300);
+    actor.opacity = opacity;
+    actor.restore_easing_state();
+
+    if (!this._transition) {
+      const transition = actor.get_transition('opacity');
+      if (transition) {
+        this._transition = transition;
+        transition.connect('stopped', uneased(this._onCompleted.bind(this)));
+      }
+    }
+
+    if (!this._transition) {
+      this._onCompleted();
+    }
+  }
+
+  _ease2() {
+    const actor = this._actor;
+
+    if (this._active) {
+      this._scaled.setActive(true);
+    }
+
+    const delay = this._active ? 0 : 200;
+    const opacity = this._active ? this._opacity : 0;
+    const mode = Clutter.AnimationMode.LINEAR;
+
+    const active = this._active;
+    actor.ease({
+      //      delay,
+      duration: 5000,
+      opacity,
+      mode,
+      onStopped: () => this._onStopped(active)
+    });
+  }
+
+  _onStopped(active) {
+    if (!this._active === active) {
+      return;
+    }
+    this._onCompleted();
+  }
+
+  _onCompleted() {
+    this._transition = null;
+    if (!this._active) {
+      this._scaled.setActive(false);
+    }
+    this.onCompleted();
   }
 }
