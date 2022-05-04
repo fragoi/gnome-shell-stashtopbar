@@ -49,6 +49,33 @@ const AnimationType = {
 var _log;
 
 /**
+ * Ensures the handler runs without an easing delay and duration.
+ * 
+ * This should be used for handlers connected to the 'stopped' signal
+ * of transitions, in order to prevent issues due to shell 'ease'
+ * method that removes the running transitions inside a save/restore
+ * easing block.
+ * 
+ * @param {function} handler - the handler to wrap
+ */
+function uneased(handler) {
+  return function(transition) {
+    const actor = transition.get_animatable();
+    if (!actor.get_easing_delay() && !actor.get_easing_duration()) {
+      return handler.apply(null, arguments);
+    }
+    actor.save_easing_state();
+    try {
+      actor.set_easing_delay(0);
+      actor.set_easing_duration(0);
+      return handler.apply(null, arguments);
+    } finally {
+      actor.restore_easing_state();
+    }
+  }
+}
+
+/**
  * Wrapper class for configuring animation.
  */
 var Wrapper = class {
@@ -199,10 +226,10 @@ class Offcanvas {
     this._inactiveY = 0;
     this._transitionY = null;
 
-    this._pendingWire = wire(null, 'stopped', () => {
+    this._pendingWire = wire(null, 'stopped', uneased(() => {
       this._pendingWire.setTarget(null);
       this._toggle();
-    });
+    }));
 
     this._wires = [
       wire(talloc, 'allocation-changed', () => {
@@ -254,7 +281,7 @@ class Offcanvas {
 
     /* check if we are waiting for other transitions to complete */
     if (this._waitingForTransition()) {
-      _log && _log('Waiting for transition to complete');
+      _log && _log('Waiting for other transition to complete');
       return;
     }
 
@@ -289,7 +316,7 @@ class Offcanvas {
       /* when actor is not mapped, transition is not created */
       if (transitionY) {
         this._transitionY = transitionY;
-        transitionY.connect('stopped', this._onCompleted.bind(this));
+        transitionY.connect('stopped', uneased(this._onCompleted.bind(this)));
         transitionY.connect_after('new-frame', this._onTransition.bind(this));
       }
     }
