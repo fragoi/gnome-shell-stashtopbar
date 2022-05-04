@@ -115,7 +115,8 @@ class Extension {
   enable() {
     this._gsettings = ExtensionUtils.getSettings(GSETTINGS_ID);
 
-    this._actor = new Clutter.Actor({ reactive: true });
+    //    this._actor = new Clutter.Actor({ reactive: true });
+    this._actor = Main.layoutManager.panelBox;
 
     this._talloc = new TransformedAllocation(this._actor);
 
@@ -145,7 +146,13 @@ class Extension {
 
     this._components = [];
 
-    this._components.push(new UIChange(this._actor));
+    if (this._actor !== Main.layoutManager.panelBox) {
+      this._components.push(new UIChangeForActor(this._actor));
+    } else {
+      this._components.push(new UIChangeForPanelBox(this._actor));
+    }
+
+    this._components.push(new EnsureReactive(this._actor));
     this._components.push(new InputRegionTrigger(this._talloc));
 
     this._components.push(this._talloc);
@@ -185,7 +192,7 @@ class Extension {
     }
     /* wait for actor to be mapped */
     if (!actor.is_mapped()) {
-      log('Actor is not mapped, delay deactivation');
+      _log && _log('Actor is not mapped, delay deactivation');
       const mappedId = actor.connect('notify::mapped', () => {
         actor.disconnect(mappedId);
         /* enqueue deactivation when idle */
@@ -194,14 +201,14 @@ class Extension {
       return;
     }
     /* wait for actor to have an allocation */
-    if (!actor.has_allocation()) {
-      log('Actor has no allocation, delay deactivation');
-      const allocationId = actor.connect('notify::allocation', () => {
-        actor.disconnect(allocationId);
-        this._deactivateOnEnable();
-      });
-      return;
-    }
+    //    if (!actor.has_allocation()) {
+    //      _log && _log('Actor has no allocation, delay deactivation');
+    //      const allocationId = actor.connect('notify::allocation', () => {
+    //        actor.disconnect(allocationId);
+    //        this._deactivateOnEnable();
+    //      });
+    //      return;
+    //    }
     /* deactivate if necessary */
     if (this._animation && this._activator) {
       this._animation.setActive(this._activator.active);
@@ -220,7 +227,9 @@ class Extension {
     this._animation = null;
     this._talloc = null;
 
-    this._actor.destroy();
+    if (this._actor !== Main.layoutManager.panelBox) {
+      this._actor.destroy();
+    }
     this._actor = null;
 
     this._gsettings = null;
@@ -230,7 +239,7 @@ class Extension {
   }
 }
 
-class UIChange {
+class UIChangeForActor {
   constructor(actor) {
     this._actor = actor;
   }
@@ -266,6 +275,67 @@ class UIChange {
     panelBox.add_child(panel);
 
     Main.layoutManager.removeChrome(this._actor);
+  }
+}
+
+class UIChangeForPanelBox {
+  enable() {
+    const panelBox = Main.layoutManager.panelBox;
+
+    // TODO: make this configurable
+    const trackFullscreen = false;
+
+    /* untrack and retrack only input region (by default) */
+    Main.layoutManager.untrackChrome(panelBox);
+    Main.layoutManager.trackChrome(panelBox, {
+      trackFullscreen
+    });
+
+    if (!trackFullscreen && !panelBox.visible) {
+      panelBox.visible = true;
+    }
+  }
+
+  disable() {
+    const panelBox = Main.layoutManager.panelBox;
+
+    /* untrack and retrack with all flags (like when created) */
+    Main.layoutManager.untrackChrome(panelBox);
+    Main.layoutManager.trackChrome(panelBox, {
+      affectsStruts: true,
+      trackFullscreen: true
+    });
+  }
+}
+
+class EnsureReactive {
+  constructor(actor) {
+    this._actor = actor;
+    this._wasReactive = null;
+  }
+
+  enable() {
+    if (this._wasReactive !== null) {
+      return;
+    }
+
+    this._wasReactive = this._actor.get_reactive();
+
+    if (!this._wasReactive) {
+      this._actor.set_reactive(true);
+    }
+  }
+
+  disable() {
+    if (this._wasReactive === null) {
+      return;
+    }
+
+    if (!this._wasReactive) {
+      this._actor.set_reactive(false);
+    }
+
+    this._wasReactive = null;
   }
 }
 
@@ -640,11 +710,13 @@ class HoverTracker {
   }
 
   _onEnter(_actor, _event) {
+    _log && _log('Enter');
     this._inside = true;
     this._setHover(true);
   }
 
   _onLeave(actor, event) {
+    _log && _log('Leave');
     if (!this._inside) {
       return;
     }
