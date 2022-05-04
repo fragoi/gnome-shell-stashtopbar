@@ -134,7 +134,6 @@ class Scaled {
    */
   constructor(talloc) {
     this._talloc = talloc;
-    this._actor = talloc.actor;
     this._scaleY = null;
   }
 
@@ -142,7 +141,7 @@ class Scaled {
     if (this._scaleY !== null) {
       return;
     }
-    this._scaleY = this._actor.scale_y;
+    this._scaleY = this._talloc.actor.scale_y;
   }
 
   disable() {
@@ -168,14 +167,15 @@ class Scaled {
   onCompleted() { }
 
   _activate() {
-    this._actor.scale_y = this._scaleY;
+    this._talloc.actor.scale_y = this._scaleY;
     this._talloc.setTranslation({ y2: 0 });
     this._talloc.visible = true;
   }
 
   _deactivate() {
-    this._actor.scale_y = 0;
-    this._talloc.setTranslation({ y2: -this._talloc.y2 });
+    this._talloc.actor.scale_y = 0;
+    const allocation = this._talloc.allocation;
+    this._talloc.setTranslation({ y2: allocation.y1 - allocation.y2 });
     this._talloc.visible = false;
   }
 }
