@@ -247,6 +247,11 @@ class UIChange {
 
     panelBox.remove_child(panel);
     this._actor.add_child(panel);
+
+    /* when actor is not visible need to ask a relayout */
+    if (!panelBox.visible) {
+      panelBox.queue_relayout();
+    }
   }
 
   disable() {
