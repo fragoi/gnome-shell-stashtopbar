@@ -414,9 +414,22 @@ class Offcanvas {
       const h = actor.height;
       const isLocalY = this._activeY !== this._inactiveY
         && (y === this._activeY || y === this._inactiveY);
-      if (isLocalY || y === monitor.y || y + h === monitor.y) {
-        activeY = monitor.y;
-        inactiveY = activeY - h;
+
+      /* top */
+      const monitorY1 = monitor.y;
+      const isLocalTop = isLocalY && this._activeY === monitorY1;
+      if (isLocalTop || y === monitorY1 || y + h === monitorY1) {
+        activeY = monitorY1;
+        inactiveY = monitorY1 - h;
+      }
+      /* bottom */
+      else {
+        const monitorY2 = monitor.y + monitor.height;
+        const isLocalBottom = isLocalY && this._inactiveY === monitorY2;
+        if (isLocalBottom || y === monitorY2 || y + h === monitorY2) {
+          activeY = monitorY2 - h;
+          inactiveY = monitorY2;
+        }
       }
     }
 
