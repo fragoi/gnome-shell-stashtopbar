@@ -21,10 +21,11 @@ const NAME = 'Stash Top Bar';
 const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
 
 const ActivationFlags = {
-  HOVER: 1,
-  OVERVIEW: 2,
-  KEYFOCUS: 4,
-  MENUOPEN: 8
+  HOVER: 1 << 0,
+  OVERVIEW: 1 << 1,
+  KEYFOCUS: 1 << 2,
+  MENUOPEN: 1 << 3,
+  KEYFOCUS_TRACKER: 1 << 4
 };
 
 const Edge = {
@@ -49,6 +50,9 @@ function init() {
   return new Extension();
 }
 
+/**
+ * @param {number} flags
+ */
 function _activationFlagsToString(flags) {
   let string = '';
   for (const name in ActivationFlags) {
@@ -166,6 +170,7 @@ class Extension {
     ));
     this._components.push(new OverviewActivation(Main.overview, this._activator));
     this._components.push(new StatusAreaActivations(Main.panel, this._activator));
+    //    this._components.push(new KeyFocusTracker(this._actor, this._activator));
     this._components.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
     this._components.push(new ActiveMenuRelayout(this._talloc));
 
@@ -1435,5 +1440,72 @@ class Unredirect {
       Meta.enable_unredirect_for_display(global.display);
     }
     this._disabled = value;
+  }
+}
+
+class KeyFocusTracker {
+  constructor(actor, activator) {
+    this._actor = actor;
+    this._activator = activator;
+
+    this._keyFocus = null;
+    this._modal = false;
+
+    this._wire = wire(
+      global.stage,
+      'notify::key-focus',
+      this._onKeyFocusNotify.bind(this)
+    );
+  }
+
+  enable() {
+    this._wire.connect();
+  }
+
+  disable() {
+    this._wire.disconnect();
+    this._keyFocus = null;
+    this._modal = false;
+  }
+
+  _activate() {
+    this._activator.activate(ActivationFlags.KEYFOCUS_TRACKER);
+  }
+
+  _deactivate() {
+    this._activator.deactivate(ActivationFlags.KEYFOCUS_TRACKER);
+  }
+
+  /**
+   * Need this as notify is emitted also when element is the same.
+   */
+  _onKeyFocusNotify() {
+    const keyFocus = global.stage.key_focus;
+    if (this._keyFocus !== keyFocus) {
+      this._keyFocus = keyFocus;
+      this._onKeyFocusChanged();
+    }
+  }
+
+  _onKeyFocusChanged() {
+    if (this._withinModal()) {
+      return;
+    }
+    const keyFocus = this._keyFocus;
+    _log && _log(`Key focus changed: ${keyFocus}`);
+    if (keyFocus && this._actor.contains(keyFocus)) {
+      this._activate();
+    } else {
+      this._deactivate();
+    }
+  }
+
+  _withinModal() {
+    const modal = !!(this._keyFocus && Main.modalCount);
+    if (this._modal !== modal) {
+      this._modal = modal;
+      return false;
+    }
+    return modal;
   }
 }
