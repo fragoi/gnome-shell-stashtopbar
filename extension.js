@@ -165,17 +165,19 @@ class Extension {
       this._activator
     ));
     this._components.push(new OverviewActivation(Main.overview, this._activator));
+    this._components.push(new StatusAreaActivations(Main.panel, this._activator));
     this._components.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
+    this._components.push(new ActiveMenuRelayout(this._talloc));
 
-    const panel = Main.panel;
-    for (const p in panel.statusArea) {
-      const actor = panel.statusArea[p];
-      this._components.push(new KeyFocusActivation(actor, this._activator));
-      if (actor.menu) {
-        this._components.push(new MenuActivation(actor.menu, this._activator));
-        this._components.push(new MenuRelayout(this._talloc, actor.menu));
-      }
-    }
+    //    const panel = Main.panel;
+    //    for (const p in panel.statusArea) {
+    //      const actor = panel.statusArea[p];
+    //      this._components.push(new KeyFocusActivation(actor, this._activator));
+    //      if (actor.menu) {
+    //        this._components.push(new MenuActivation(actor.menu, this._activator));
+    ////        this._components.push(new MenuRelayout(this._talloc, actor.menu));
+    //      }
+    //    }
 
     this._components.forEach(e => e.enable());
 
@@ -1072,6 +1074,160 @@ class OverviewActivation {
   }
 }
 
+class StatusAreaActivations {
+
+  /**
+   * @param {Clutter.Actor} actor - the panel
+   * @param {Activator} activator
+   */
+  constructor(actor, activator) {
+    this._actor = actor;
+    this._activator = activator;
+
+    /** @type {Object<string, PanelMenuActivation>} */
+    this._activations = {};
+
+    this._wires = [];
+    // I whish there was a better way
+    const updateStatusArea = this._updateStatusArea.bind(this);
+    for (const child of actor.get_children()) {
+      this._wires.push(wire(child, 'actor-added', updateStatusArea));
+      this._wires.push(wire(child, 'actor-removed', updateStatusArea));
+    }
+  }
+
+  enable() {
+    this._wires.forEach(e => e.connect());
+    this._updateStatusArea();
+  }
+
+  disable() {
+    this._wires.forEach(e => e.disconnect());
+    for (const key in this._activations) {
+      this._removeActivation(key);
+    }
+  }
+
+  _updateStatusArea() {
+    const statusArea = this._actor.statusArea;
+    _log && _log(`Update status area: ${Object.keys(statusArea)}`);
+    for (const key in statusArea) {
+      const actor = statusArea[key];
+      this._setActivation(key, actor);
+    }
+    for (const key in this._activations) {
+      if (!(key in statusArea)) {
+        this._removeActivation(key);
+      }
+    }
+  }
+
+  _setActivation(key, actor) {
+    let activation = this._activations[key];
+    if (activation && activation.actor !== actor) {
+      _log && _log(`Disable activation for key: ${key}`);
+      activation.disable();
+      activation = null;
+    }
+    if (!activation && actor) {
+      _log && _log(`Create new activation for key: ${key}`);
+      activation = new PanelMenuActivation(actor, this._activator);
+      activation.onDestroy = () => this._removeActivation(key);
+      this._activations[key] = activation;
+      activation.enable();
+    }
+    if (!actor) {
+      _log && _log(`Delete activation for key: ${key}`);
+      delete this._activations[key];
+    }
+  }
+
+  _removeActivation(key) {
+    _log && _log(`Remove activation for key: ${key}`);
+    const activation = this._activations[key];
+    if (activation) {
+      activation.disable();
+    }
+    delete this._activations[key];
+  }
+}
+
+class PanelMenuActivation {
+  constructor(actor, activator) {
+    this._actor = actor;
+    this._activator = activator;
+
+    this._menuActivator = new PopupMenuActivation(activator);
+
+    this._wires = [
+      wire(actor, 'key-focus-in', this._onKeyFocusIn.bind(this)),
+      wire(actor, 'key-focus-out', this._onKeyFocusOut.bind(this)),
+      wire(actor, 'menu-set', this._onMenuSet.bind(this)),
+      wire(actor, 'destroy', this._onDestroy.bind(this))
+    ];
+  }
+
+  get actor() {
+    return this._actor;
+  }
+
+  enable() {
+    this._wires.forEach(e => e.connect());
+    this._menuActivator.setMenu(this._actor.menu);
+  }
+
+  disable() {
+    this._wires.forEach(e => e.disconnect());
+    this._menuActivator.setMenu(null);
+  }
+
+  onDestroy() { }
+
+  _onKeyFocusIn() {
+    this._activator.activate(ActivationFlags.KEYFOCUS);
+  }
+
+  _onKeyFocusOut() {
+    this._activator.deactivate(ActivationFlags.KEYFOCUS);
+  }
+
+  _onMenuSet() {
+    this._menuActivator.setMenu(this._actor.menu);
+  }
+
+  _onDestroy() {
+    this._wires.forEach(e => e.setTarget(null));
+    this._menuActivator.setMenu(null);
+    this.onDestroy();
+  }
+}
+
+class PopupMenuActivation {
+  constructor(activator) {
+    this._activator = activator;
+    this._wires = [
+      wire(null, 'open-state-changed', this._onOpenChanged.bind(this)),
+      wire(null, 'destroy', this._onDestroy.bind(this))
+    ];
+  }
+
+  setMenu(menu) {
+    this._wires.forEach(e => e.setTarget(menu).connect());
+  }
+
+  _onOpenChanged(menu) {
+    if (menu.isOpen) {
+      this._activator.activate(ActivationFlags.MENUOPEN);
+    } else {
+      this._activator.deactivate(ActivationFlags.MENUOPEN);
+    }
+  }
+
+  _onDestroy() {
+    this.setMenu(null);
+  }
+}
+
 class KeyFocusActivation {
   constructor(actor, activator) {
     this._activator = activator;
@@ -1146,6 +1302,31 @@ class MenuRelayout {
   _relayout() {
     const menu = this._menu;
     if (menu.isOpen && menu.actor) {
+      menu.actor.queue_relayout();
+    }
+  }
+}
+
+class ActiveMenuRelayout {
+  constructor(talloc) {
+    this._wire = wire(
+      talloc,
+      'transformed-changed',
+      this._relayout.bind(this)
+    );
+  }
+
+  enable() {
+    this._wire.connect();
+  }
+
+  disable() {
+    this._wire.disconnect();
+  }
+
+  _relayout() {
+    const menu = Main.panel.menuManager.activeMenu;
+    if (menu && menu.isOpen && menu.actor) {
       menu.actor.queue_relayout();
     }
   }
