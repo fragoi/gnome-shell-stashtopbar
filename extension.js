@@ -129,6 +129,8 @@ class Extension {
 
     this._unredirect = new Unredirect();
 
+    this._activation = new IdleActivation(true);
+
     this._activator = new Activator();
 
     this._activator.onFlagsChanged = () => {
@@ -138,13 +140,17 @@ class Extension {
     };
 
     this._activator.onActiveChanged = () => {
-      if (this._activator.active)
+      this._activation.setActive(this._activator.active);
+    };
+
+    this._activation.onActiveChanged = () => {
+      if (this._activation.active)
         this._unredirect.setDisabled(true);
-      this._animation.setActive(this._activator.active);
+      this._animation.setActive(this._activation.active);
     };
 
     this._animation.onCompleted = () => {
-      if (!this._activator.active)
+      if (!this._activation.active)
         this._unredirect.setDisabled(false);
     };
 
@@ -161,6 +167,7 @@ class Extension {
 
     this._components.push(this._talloc);
     this._components.push(this._animation);
+    this._components.push(this._activation);
 
     this._components.push(new HoverActivation(this._actor, this._activator));
     this._components.push(new BarrierActivation(
@@ -202,8 +209,7 @@ class Extension {
       _log && _log('Actor is not mapped, delay deactivation');
       const mappedId = actor.connect('notify::mapped', () => {
         actor.disconnect(mappedId);
-        /* enqueue deactivation when idle */
-        idleAdd(() => this._deactivateOnEnable());
+        this._deactivateOnEnable();
       });
       return;
     }
@@ -217,8 +223,8 @@ class Extension {
     //      return;
     //    }
     /* deactivate if necessary */
-    if (this._animation && this._activator) {
-      this._animation.setActive(this._activator.active);
+    if (this._activation && this._activator) {
+      this._activation.setActive(this._activator.active);
     }
   }
 
@@ -662,6 +668,62 @@ class Activator {
   }
 }
 
+class IdleActivation {
+  constructor(active = false) {
+    this._active = active;
+    this._wanted = active;
+    this._idleId = 0;
+  }
+
+  enable() { }
+
+  disable() {
+    this._idleRemove();
+  }
+
+  get active() {
+    return this._active;
+  }
+
+  onActiveChanged() { }
+
+  setActive(value) {
+    if (this._wanted !== value) {
+      this._wanted = value;
+      this._idleAdd();
+    }
+  }
+
+  _setActive(value) {
+    if (this._active !== value) {
+      this._active = value;
+      _log && _log(`Active changed: ${value}`);
+      this.onActiveChanged();
+    }
+  }
+
+  _idleAdd() {
+    if (this._idleId) {
+      return;
+    }
+    _log && _log('Idle add');
+    this._idleId = idleAdd(this._onIdle.bind(this));
+  }
+
+  _idleRemove() {
+    if (!this._idleId) {
+      return;
+    }
+    idleRemove(this._idleId);
+    this._idleId = 0;
+  }
+
+  _onIdle() {
+    this._idleId = 0;
+    this._setActive(this._wanted);
+  }
+}
+
 class HoverActivation {
   constructor(actor, activator) {
     this._hoverTracker = new HoverTracker(actor);
@@ -686,8 +748,6 @@ class HoverActivation {
 class HoverTracker {
   constructor(actor) {
     this._hover = false;
-    this._inside = false;
-    this._idleId = 0;
     this._wires = [
       wire(actor, 'enter-event', this._onEnter.bind(this)),
       wire(actor, 'leave-event', this._onLeave.bind(this))
@@ -700,7 +760,6 @@ class HoverTracker {
 
   disable() {
     this._wires.forEach(e => e.disconnect());
-    this._idleRemove();
   }
 
   onHoverChanged() { }
@@ -716,48 +775,20 @@ class HoverTracker {
     }
   }
 
-  _onEnter(_actor, _event) {
+  _onEnter() {
     _log && _log('Enter');
-    this._inside = true;
     this._setHover(true);
   }
 
   _onLeave(actor, event) {
     _log && _log('Leave');
-    if (!this._inside) {
-      return;
-    }
+
     const related = event.get_related();
     if (related && actor.contains(related)) {
       return;
     }
-    this._inside = false;
 
-    /* disable is done when idle to avoid spurious leave/enter events
-     * generated for example when WM input regions change.
-     * If an enter event is following this leave event, the inside flag
-     * will be true when idle so nothing will change */
-    this._idleAdd();
-  }
-
-  _idleAdd() {
-    if (this._idleId) {
-      return;
-    }
-    this._idleId = idleAdd(this._onIdle.bind(this));
-  }
-
-  _idleRemove() {
-    if (!this._idleId) {
-      return;
-    }
-    idleRemove(this._idleId);
-    this._idleId = 0;
-  }
-
-  _onIdle() {
-    this._idleId = 0;
-    this._setHover(this._inside);
+    this._setHover(false);
   }
 }
 
