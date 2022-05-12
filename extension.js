@@ -734,6 +734,9 @@ class HoverActivation {
         activator.deactivate(ActivationFlags.HOVER);
       }
     };
+    this._hoverTracker.preventSafeLeave = () => {
+      return activator.flags !== ActivationFlags.HOVER;
+    };
   }
 
   enable() {
@@ -750,6 +753,8 @@ class HoverTracker {
     this._hover = false;
     this._wires = [
       wire(actor, 'enter-event', this._onEnter.bind(this)),
+      /* need to track also motion event because of grabs */
+      wire(actor, 'motion-event', this._onHover.bind(this)),
       wire(actor, 'leave-event', this._onLeave.bind(this))
     ];
   }
@@ -762,10 +767,14 @@ class HoverTracker {
     this._wires.forEach(e => e.disconnect());
   }
 
-  onHoverChanged() { }
-
   get hover() {
     return this._hover;
+  }
+
+  onHoverChanged() { }
+
+  preventSafeLeave() {
+    return false;
   }
 
   _setHover(value) {
@@ -780,12 +789,21 @@ class HoverTracker {
     this._setHover(true);
   }
 
+  _onHover() {
+    this._setHover(true);
+  }
+
   _onLeave(actor, event) {
     _log && _log('Leave');
 
-    const related = event.get_related();
-    if (related && actor.contains(related)) {
-      return;
+    /* check related actor only when there is no event grab
+     * as we may then not receive another leave event */
+    //    if (!(Main.actionMode & Shell.ActionMode.POPUP)) {
+    if (!this.preventSafeLeave()) {
+      const related = event.get_related();
+      if (related && actor.contains(related)) {
+        return;
+      }
     }
 
     this._setHover(false);
