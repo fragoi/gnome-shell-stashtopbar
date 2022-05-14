@@ -3,5 +3,6 @@
 export {
   idleAdd,
   idleRemove,
+  setProperties,
   wire
 }

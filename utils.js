@@ -18,6 +18,22 @@ function idleRemove(id) {
 }
 
 /**
+ * @param object - the object to set properties to
+ * @param values - the object with properties to set
+ * @returns if any property is changed
+ */
+function setProperties(object, values) {
+  let changed = false;
+  for (const p in object) {
+    if (p in values && object[p] !== values[p]) {
+      object[p] = values[p];
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+/**
  * @param target - the GObject-like object to connect to
  * @param {string} signal - the signal name to connect to
  * @param {function} handler - the handler to connect

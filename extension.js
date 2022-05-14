@@ -17,6 +17,11 @@ const Animations = Me.imports.animations;
  */
 const { idleAdd, idleRemove, wire } = Me.imports.utils;
 
+/**
+ * @type {import('./wm')}
+ */
+const { WindowOverlaps } = Me.imports.wm;
+
 const NAME = 'Stash Top Bar';
 const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
 
@@ -25,7 +30,8 @@ const ActivationFlags = {
   OVERVIEW: 1 << 1,
   KEYFOCUS: 1 << 2,
   MENUOPEN: 1 << 3,
-  KEYFOCUS_TRACKER: 1 << 4
+  KEYFOCUS_TRACKER: 1 << 4,
+  WINDOW_OVERLAPS: 1 << 5
 };
 
 const Edge = {
@@ -1556,5 +1562,61 @@ class KeyFocusTracker {
       return false;
     }
     return modal;
+  }
+}
+
+class WindowOverlapsActivation {
+
+  /**
+   * @param {TransformedAllocation} talloc
+   * @param {Activator} activator
+   */
+  constructor(talloc, activator) {
+    this._talloc = talloc;
+    this._activator = activator;
+
+    this._windowOverlaps = new WindowOverlaps();
+    this._windowOverlaps.onOverlapsChanged = () => {
+      _log && _log(`Window overlaps changed: ${this._windowOverlaps.overlaps}`);
+    };
+    this._windowOverlaps.onHasOverlapsChanged = this._toggle.bind(this);
+
+    this._wire = wire(
+      talloc,
+      'allocation-changed',
+      this._updateAllocation.bind(this)
+    );
+  }
+
+  enable() {
+    this._wire.connect();
+    this._windowOverlaps.enable();
+    this._updateAllocation();
+    this._toggle();
+  }
+
+  disable() {
+    this._wire.disconnect();
+    this._windowOverlaps.disable();
+  }
+
+  _toggle() {
+    if (!this._windowOverlaps.hasOverlaps) {
+      this._activator.activate(ActivationFlags.WINDOW_OVERLAPS);
+    } else {
+      this._activator.deactivate(ActivationFlags.WINDOW_OVERLAPS);
+    }
+  }
+
+  _updateAllocation() {
+    const actor = this._talloc.actor;
+    const [x, y] = actor.get_transformed_position();
+    const [w, h] = actor.get_transformed_size();
+    this._windowOverlaps.setBox({
+      x1: x,
+      y1: y,
+      x2: x + w,
+      y2: y + h
+    });
   }
 }
