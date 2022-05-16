@@ -139,14 +139,14 @@ class Extension {
 
     this._activator = new Activator();
 
+    const trigger = () => this._activation.setActive(this._activator.active);
+
+    this._activator.onActiveChanged = trigger;
+
     this._activator.onFlagsChanged = () => {
       _log && _log(`Activator flags changed: [${(
         _activationFlagsToString(this._activator.flags)
       )}]`);
-    };
-
-    this._activator.onActiveChanged = () => {
-      this._activation.setActive(this._activator.active);
     };
 
     this._activation.onActiveChanged = () => {
@@ -198,41 +198,16 @@ class Extension {
     //      }
     //    }
 
-    this._components.forEach(e => e.enable());
+    this._components.push(new TriggerOnMapped(this._actor, trigger));
 
-    this._deactivateOnEnable();
+    /* up to here no changes have been made to any actor and no signals
+     * have been connected (otherwise, it is a bug).
+     * Now start applying changes... */
+
+    this._components.forEach(e => e.enable());
 
     Main.stashTopBar = this;
     log(`${NAME} enabled`);
-  }
-
-  _deactivateOnEnable() {
-    const actor = this._actor;
-    if (!actor) {
-      return;
-    }
-    /* wait for actor to be mapped */
-    if (!actor.is_mapped()) {
-      _log && _log('Actor is not mapped, delay deactivation');
-      const mappedId = actor.connect('notify::mapped', () => {
-        actor.disconnect(mappedId);
-        this._deactivateOnEnable();
-      });
-      return;
-    }
-    /* wait for actor to have an allocation */
-    //    if (!actor.has_allocation()) {
-    //      _log && _log('Actor has no allocation, delay deactivation');
-    //      const allocationId = actor.connect('notify::allocation', () => {
-    //        actor.disconnect(allocationId);
-    //        this._deactivateOnEnable();
-    //      });
-    //      return;
-    //    }
-    /* deactivate if necessary */
-    if (this._activation && this._activator) {
-      this._activation.setActive(this._activator.active);
-    }
   }
 
   disable() {
@@ -637,6 +612,39 @@ class TransformedAllocation {
   }
 }
 Signals.addSignalMethods(TransformedAllocation.prototype);
+
+class TriggerOnMapped {
+  constructor(actor, trigger) {
+    this._actor = actor;
+    this._trigger = trigger;
+
+    this._wire = wire(
+      actor,
+      'notify::mapped',
+      this._onMappedChanged.bind(this)
+    );
+  }
+
+  enable() {
+    if (this._actor.is_mapped()) {
+      this._trigger();
+    } else {
+      _log && _log('Actor is not mapped, wait for it');
+      this._wire.connect();
+    }
+  }
+
+  disable() {
+    this._wire.disconnect();
+  }
+
+  _onMappedChanged() {
+    if (this._actor.is_mapped()) {
+      this._wire.disconnect();
+      this._trigger();
+    }
+  }
+}
 
 class Activator {
   constructor() {
