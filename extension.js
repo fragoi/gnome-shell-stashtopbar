@@ -184,6 +184,7 @@ class Extension {
     this._components.push(new OverviewActivation(Main.overview, this._activator));
     this._components.push(new StatusAreaActivations(Main.panel, this._activator));
     //    this._components.push(new KeyFocusTracker(this._actor, this._activator));
+    this._components.push(new WindowOverlapsActivation(this._talloc, this._activator));
     this._components.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
     this._components.push(new ActiveMenuRelayout(this._talloc));
 
