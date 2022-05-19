@@ -1,6 +1,6 @@
 'use strict';
 
-const { Clutter, GObject, Meta } = imports.gi;
+const { Clutter, GObject, Meta, Shell } = imports.gi;
 const Signals = imports.signals;
 const Main = imports.ui.main;
 
@@ -119,6 +119,10 @@ function _relativeEdge(boxA, boxB) {
   }
 
   return Edge.NONE;
+}
+
+function _isStartupCompleted() {
+  return Main.actionMode !== Shell.ActionMode.NONE;
 }
 
 class Extension {
@@ -834,6 +838,13 @@ class HoverTracker {
 
 /**
  * NOTE: Barrier activation activate the HOVER flag.
+ * 
+ * NOTE: During startup animation methods get_transformed_xxx would return
+ * wrong results, so the update barrier method needs to wait the startup to
+ * complete. This is actually required only when the edge setting is 'auto',
+ * but there should not be any issue doing this in any case.
+ * An alternative solution would be to use the allocation box, as the panel
+ * is in relative coordinates in respect to the stage in any case.
  */
 class BarrierActivation {
   constructor(talloc, gsettings, activator) {
@@ -846,6 +857,11 @@ class BarrierActivation {
     this._pressureBarrier.onHit = this._activate.bind(this);
 
     this._wires = [
+      wire(
+        Main.layoutManager,
+        'startup-complete',
+        this._updateBarrier.bind(this)
+      ),
       wire(
         talloc,
         'allocation-changed',
@@ -877,7 +893,9 @@ class BarrierActivation {
   enable() {
     this._wires.forEach(e => e.connect());
 
-    this._updateBarrier();
+    if (_isStartupCompleted()) {
+      this._updateBarrier();
+    }
 
     this._updateSlidePrevention();
     this._updateThreshold();
@@ -1626,13 +1644,8 @@ class WindowOverlapsActivation {
 
   _updateAllocation() {
     const actor = this._talloc.actor;
-    const [x, y] = actor.get_transformed_position();
-    const [w, h] = actor.get_transformed_size();
-    this._windowOverlaps.setBox({
-      x1: x,
-      y1: y,
-      x2: x + w,
-      y2: y + h
-    });
+    const box = actor.get_allocation_box();
+    _log && _log(`Set window overlaps box: ${_boxToString(box)}`);
+    this._windowOverlaps.setBox(box);
   }
 }
