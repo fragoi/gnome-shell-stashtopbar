@@ -1625,9 +1625,6 @@ class WindowOverlapsActivation {
     this._activator = activator;
 
     this._windowOverlaps = new WindowOverlaps();
-    this._windowOverlaps.onOverlapsChanged = () => {
-      _log && _log(`Window overlaps changed: ${this._windowOverlaps.overlaps}`);
-    };
     this._windowOverlaps.onHasOverlapsChanged = this._toggle.bind(this);
 
     this._wire = wire(
