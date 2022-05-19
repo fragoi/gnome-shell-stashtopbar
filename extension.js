@@ -1238,7 +1238,10 @@ class StatusAreaActivations {
     if (!activation && actor) {
       _log && _log(`Create new activation for key: ${key}`);
       activation = new PanelMenuActivation(actor, this._activator);
-      activation.onDestroy = () => this._removeActivation(key);
+      activation.onDestroy = () => {
+        _log && _log(`Delete activation for key: ${key}`);
+        delete this._activations[key];
+      };
       this._activations[key] = activation;
       activation.enable();
     }
