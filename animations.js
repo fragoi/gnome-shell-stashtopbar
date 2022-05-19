@@ -559,6 +559,8 @@ class Fade {
   onCompleted() { }
 
   _ease() {
+    _log && _log(`Ease, active: ${this._active}`);
+
     if (this._transition) {
       // TODO: reverse
     }
@@ -628,6 +630,7 @@ class Fade {
   }
 
   _onCompleted() {
+    _log && _log(`Ease completed, active: ${this._active}`);
     this._transition = null;
     if (!this._active) {
       this._scaled.setActive(false);
