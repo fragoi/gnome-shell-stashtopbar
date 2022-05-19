@@ -78,10 +78,11 @@ function _boxToString({ x1, y1, x2, y2 }) {
 }
 
 /**
- * @param {box} boxA
- * @param {box} boxB
+ * @param {box} boxA - the respect to box
+ * @param {box} boxB - the relative to box
+ * @param factor - the relative factor
  */
-function _relativeEdge(boxA, boxB) {
+function _relativeEdge(boxA, boxB, factor = 0.3) {
   const { x1: x, y1: y } = boxA;
   const w = (boxA.x2 - x) || 1;
   const h = (boxA.y2 - y) || 1;
@@ -91,34 +92,20 @@ function _relativeEdge(boxA, boxB) {
   const ry1 = (boxB.y1 - y) / h;
   const rx2 = (boxB.x2 - x) / w;
   const ry2 = (boxB.y2 - y) / h;
-  /* relative size */
-  const rw = rx2 - rx1;
-  const rh = ry2 - ry1;
 
-  /* horizontal */
-  if (rw > rh) {
-    /* top */
-    if (ry2 < 0.3) {
-      return Edge.TOP;
-    }
-    /* bottom */
-    else if (ry1 > 0.7) {
-      return Edge.BOTTOM;
-    }
-  }
-  /* vertical */
-  else if (rw < rh) {
-    /* left */
-    if (rx2 < 0.3) {
-      return Edge.LEFT;
-    }
-    /* right */
-    else if (rx1 > 0.7) {
-      return Edge.RIGHT;
-    }
-  }
+  let edge = Edge.NONE;
 
-  return Edge.NONE;
+  if (ry2 < factor)
+    edge |= Edge.TOP;
+  else if (ry1 > 1 - factor)
+    edge |= Edge.BOTTOM;
+
+  if (rx2 < factor)
+    edge |= Edge.LEFT;
+  else if (rx1 > 1 - factor)
+    edge |= Edge.RIGHT;
+
+  return edge;
 }
 
 function _isStartupCompleted() {
