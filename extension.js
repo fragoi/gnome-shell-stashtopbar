@@ -1115,6 +1115,10 @@ class PressureBarrier {
     //    }
   }
 
+  _onBarrierLeft(_barrier, _event) {
+    this._reset();
+  }
+
   _eventPressure(event) {
     const across = this._distanceAcross(event);
     const along = this._distanceAlong(event);
@@ -1141,10 +1145,6 @@ class PressureBarrier {
 
   _distanceAlong(event) {
     return Math.abs(this._horizontal ? event.dx : event.dy);
-  }
-
-  _onBarrierLeft(_barrier, _event) {
-    this._reset();
   }
 
   _reset() {
