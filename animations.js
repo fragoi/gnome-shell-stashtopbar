@@ -41,6 +41,7 @@ const { wire } = Me.imports.utils;
 
 const AnimationType = {
   NONE: 0,
+  DISABLE: -1,
   OFFCANVAS: 1,
   FADE: 2
 };
@@ -148,13 +149,47 @@ var Wrapper = class {
 
   _newAnimation(type) {
     switch (type) {
+      case AnimationType.NONE:
+        return new Scaled(this._talloc);
+      case AnimationType.DISABLE:
+        return new ShowHide(this._talloc.actor);
       case AnimationType.OFFCANVAS:
         return new Offcanvas(this._talloc);
       case AnimationType.FADE:
         return new Fade(this._talloc);
     }
-    return new Scaled(this._talloc);
   }
+}
+
+/**
+ * Change actor visibility.
+ * This breaks most functionalities related to panel.
+ */
+class ShowHide {
+  constructor(actor) {
+    this._actor = actor;
+    this._wasVisible = null;
+  }
+
+  enable() {
+    if (this._wasVisible === null) {
+      this._wasVisible = this._actor.visible;
+    }
+  }
+
+  disable() {
+    if (this._wasVisible !== null) {
+      this._actor.visible = this._wasVisible;
+      this._wasVisible = null;
+    }
+  }
+
+  setActive(value) {
+    this._actor.visible = value;
+    this.onCompleted();
+  }
+
+  onCompleted() { }
 }
 
 /**
