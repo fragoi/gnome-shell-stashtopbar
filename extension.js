@@ -856,22 +856,15 @@ class BarrierActivation {
     this._pressureBarrier = new PressureBarrier();
     this._pressureBarrier.onHit = this._activate.bind(this);
 
+    const updateBarrier = this._updateBarrier.bind(this);
+
     this._wires = [
-      wire(
-        Main.layoutManager,
-        'startup-complete',
-        this._updateBarrier.bind(this)
-      ),
-      wire(
-        talloc,
-        'allocation-changed',
-        this._updateBarrier.bind(this)
-      ),
-      wire(
-        gsettings,
-        'changed::barrier-edge',
-        this._updateBarrier.bind(this)
-      ),
+      wire(Main.layoutManager, 'startup-complete', updateBarrier),
+      wire(Main.layoutManager, 'hot-corners-changed', updateBarrier),
+
+      wire(talloc, 'allocation-changed', updateBarrier),
+      wire(gsettings, 'changed::barrier-edge', updateBarrier),
+
       wire(
         gsettings,
         'changed::barrier-slide-prevention',
@@ -993,20 +986,24 @@ class BarrierActivation {
       });
     }
 
+    /* leave space for the hot corners as when barriers overlap only the
+     * topmost will receive events (at least with X) */
+    const [leftHotCorner, rightHotCorner] = this._hotCorners();
+
     switch (edge) {
       case Edge.TOP:
         return {
           directions: Meta.BarrierDirection.POSITIVE_Y,
-          x1,
+          x1: x1 + leftHotCorner,
           y1,
-          x2,
+          x2: x2 - rightHotCorner,
           y2: y1
         };
       case Edge.RIGHT:
         return {
           directions: Meta.BarrierDirection.NEGATIVE_X,
           x1: x2,
-          y1,
+          y1: y1 + rightHotCorner,
           x2,
           y2
         };
@@ -1022,7 +1019,7 @@ class BarrierActivation {
         return {
           directions: Meta.BarrierDirection.POSITIVE_X,
           x1,
-          y1,
+          y1: y1 + leftHotCorner,
           x2: x1,
           y2
         };
@@ -1039,6 +1036,21 @@ class BarrierActivation {
         && barrier.y2 === props.y2;
     }
     return !barrier && !props;
+  }
+
+  _hotCorners() {
+    /** @type {Array} */
+    const hotCorners = Main.layoutManager.hotCorners;
+    if (!hotCorners || !hotCorners.find(e => e)) {
+      return [0, 0];
+    }
+    /* use same logic of hot corner class to determine size and placement,
+     * not querying directly the hot corner as the API is not public */
+    const hotCornerSize = this._talloc.actor.height;
+    if (Clutter.get_default_text_direction() === Clutter.TextDirection.RTL) {
+      return [0, hotCornerSize];
+    }
+    return [hotCornerSize, 0];
   }
 }
 
