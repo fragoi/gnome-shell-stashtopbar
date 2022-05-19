@@ -578,8 +578,15 @@ class TransformedAllocation {
     if (this.__allocated) {
       return;
     }
+    const box = this._actor.get_allocation_box();
+    /* we need a double check here because the above call may initialize
+     * the allocation and trigger the connected signal, causing a double
+     * initialization, not a big issue but better to avoid */
+    if (this.__allocated) {
+      return;
+    }
     const allocated = { x1: 0, y1: 0, x2: 0, y2: 0 };
-    this._setValues(allocated, this._actor.get_allocation_box());
+    this._setValues(allocated, box);
     this.__allocated = allocated;
     this.__allocation = { ...allocated };
     _log && _log(`Allocation initialized: ${_boxToString(allocated)}`);
