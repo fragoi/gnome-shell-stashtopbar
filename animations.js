@@ -119,7 +119,11 @@ var Wrapper = class {
    */
   setActive(value) {
     this._active = value;
-    this._animation && this._animation.setActive(value);
+    if (this._animation) {
+      this._animation.setActive(value);
+    } else {
+      this.onCompleted();
+    }
   }
 
   onCompleted() { }
