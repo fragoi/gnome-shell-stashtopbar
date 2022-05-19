@@ -15,7 +15,7 @@ const Animations = Me.imports.animations;
 /**
  * @type {import('./utils')}
  */
-const { idleAdd, idleRemove, wire } = Me.imports.utils;
+const { idleAdd, idleRemove, setProperties, wire } = Me.imports.utils;
 
 /**
  * @type {import('./wm')}
@@ -527,7 +527,7 @@ class TransformedAllocation {
    * @param {box} translation - the translation of the original allocation
    */
   setTranslation(translation) {
-    if (this._setValues(this._translation, translation)) {
+    if (setProperties(this._translation, translation)) {
       this._transformedChanged();
     }
   }
@@ -556,8 +556,8 @@ class TransformedAllocation {
   _updateAllocation() {
     this._ensureAllocation();
     const allocation = this._actor.get_allocation_box();
-    if (this._setValues(this.__allocated, allocation)) {
-      if (this._setValues(this.__allocation, allocation)) {
+    if (setProperties(this.__allocated, allocation)) {
+      if (setProperties(this.__allocation, allocation)) {
         this._allocationChanged();
       } else {
         this._transformedChanged();
@@ -577,21 +577,10 @@ class TransformedAllocation {
       return;
     }
     const allocated = { x1: 0, y1: 0, x2: 0, y2: 0 };
-    this._setValues(allocated, box);
+    setProperties(allocated, box);
     this.__allocated = allocated;
     this.__allocation = { ...allocated };
     _log && _log(`Allocation initialized: ${_boxToString(allocated)}`);
-  }
-
-  _setValues(object, values) {
-    let changed = false;
-    for (const p in object) {
-      if (p in values && object[p] !== values[p]) {
-        object[p] = values[p];
-        changed = true;
-      }
-    }
-    return changed;
   }
 
   _allocationChanged() {
