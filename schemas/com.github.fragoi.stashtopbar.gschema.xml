@@ -6,6 +6,7 @@
     <value nick="none" value="0" />
     <value nick="offcanvas" value="1" />
     <value nick="fade" value="2" />
+    <value nick="slide" value="3" />
   </enum>
 
   <enum id="com.github.fragoi.stashtopbar.Edge">

@@ -43,7 +43,8 @@ const AnimationType = {
   NONE: 0,
   DISABLE: -1,
   OFFCANVAS: 1,
-  FADE: 2
+  FADE: 2,
+  SLIDE: 3
 };
 
 /**
@@ -157,6 +158,8 @@ var Wrapper = class {
         return new Offcanvas(this._talloc);
       case AnimationType.FADE:
         return new Fade(this._talloc);
+      case AnimationType.SLIDE:
+        return new Slide(this._talloc);
     }
   }
 }
@@ -630,5 +633,93 @@ class Fade {
       this._scaled.setActive(false);
     }
     this.onCompleted();
+  }
+}
+
+class Slide {
+
+  /**
+   * @param {TransformedAllocation} talloc
+   */
+  constructor(talloc) {
+    const actor = talloc.actor;
+
+    this._actor = actor;
+    this._talloc = talloc;
+
+    this._active = true;
+
+    this._transitionY = null;
+  }
+
+  enable() { }
+
+  disable() {
+    /* remove transition */
+    if (this._transitionY) {
+      this._actor.remove_transition('translation-y');
+    }
+    /* reset active status and actor position */
+    if (!this._active) {
+      this._active = true;
+      this._actor.translation_y = 0;
+      this._onCompleted();
+    }
+  }
+
+  setActive(value) {
+    if (this._active !== value) {
+      this._active = value;
+      this._toggle();
+    }
+  }
+
+  onCompleted() { }
+
+  _toggle() {
+    const actor = this._actor;
+    const delay = this._active ? 0 : 200;
+    const translationY = this._active ? 0 : -actor.height;
+
+    _log && _log(`Translate Y to value: ${translationY}, `
+      + `current: ${actor.translation_y}, delay: ${delay}`);
+
+    actor.save_easing_state();
+    if (delay)
+      actor.set_easing_delay(delay);
+    //      actor.set_easing_duration(10000);
+    actor.translation_y = translationY;
+    actor.restore_easing_state();
+
+    if (!this._transitionY) {
+      const transitionY = actor.get_transition('translation-y');
+      if (transitionY) {
+        this._transitionY = transitionY;
+        transitionY.connect('stopped', uneased(this._onCompleted.bind(this)));
+        transitionY.connect_after('new-frame', this._onTransition.bind(this));
+      }
+    }
+
+    if (!this._transitionY) {
+      this._onCompleted();
+    }
+  }
+
+  _onCompleted() {
+    this._transitionY = null;
+
+    this._setTranslation();
+    this._talloc.visible = this._active;
+
+    this.onCompleted();
+  }
+
+  _onTransition() {
+    this._setTranslation();
+  }
+
+  _setTranslation() {
+    const translationY = this._actor.translation_y;
+    this._talloc.setTranslation({ y1: translationY, y2: translationY });
   }
 }
