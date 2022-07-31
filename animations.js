@@ -726,3 +726,9 @@ class Slide {
     this._talloc.setTranslation({ y1: translationY, y2: translationY });
   }
 }
+
+if (typeof module === 'object') {
+  module.exports = {
+    Wrapper
+  };
+}

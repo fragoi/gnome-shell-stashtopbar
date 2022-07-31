@@ -144,3 +144,9 @@ var WindowOverlaps = class {
       && this._box.y1 < y + height && y < this._box.y2
   }
 }
+
+if (typeof module === 'object') {
+  module.exports = {
+    WindowOverlaps
+  };
+}

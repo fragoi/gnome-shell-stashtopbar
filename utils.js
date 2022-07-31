@@ -75,3 +75,12 @@ class Wire {
     return this;
   }
 }
+
+if (typeof module === 'object') {
+  module.exports = {
+    idleAdd,
+    idleRemove,
+    setProperties,
+    wire
+  };
+}
