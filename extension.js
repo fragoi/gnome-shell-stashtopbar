@@ -44,7 +44,7 @@ const Edge = {
 };
 
 /**
- * @typedef {{x1: number, y1: number, x2: number, y2: number}} box
+ * @typedef {{x1: number, y1: number, x2: number, y2: number}} Box
  */
 
 /**
@@ -71,15 +71,15 @@ function _activationFlagsToString(flags) {
 }
 
 /**
- * @param {box}
+ * @param {Box}
  */
 function _boxToString({ x1, y1, x2, y2 }) {
   return `[${x1},${y1},${x2},${y2}]`;
 }
 
 /**
- * @param {box} boxA - the respect to box
- * @param {box} boxB - the relative to box
+ * @param {Box} boxA - the respect to box
+ * @param {Box} boxB - the relative to box
  * @param factor - the relative factor
  */
 function _relativeEdge(boxA, boxB, factor = 0.3) {
@@ -524,7 +524,7 @@ class TransformedAllocation {
   }
 
   /**
-   * @param {box} translation - the translation of the original allocation
+   * @param {Box} translation - the translation of the original allocation
    */
   setTranslation(translation) {
     if (setProperties(this._translation, translation)) {
