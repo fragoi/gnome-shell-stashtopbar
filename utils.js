@@ -3,7 +3,7 @@
 const { GLib } = imports.gi;
 
 /**
- * @param {function} callback - the callback to execute when idle
+ * @param {Function} callback - the callback to execute when idle
  * @returns {number} the ID of the idle source
  */
 function idleAdd(callback) {
@@ -18,8 +18,8 @@ function idleRemove(id) {
 }
 
 /**
- * @param object - the object to set properties to
- * @param values - the object with properties to set
+ * @param {any} object - the object to set properties to
+ * @param {any} values - the object with properties to set
  * @returns if any property is changed
  */
 function setProperties(object, values) {
@@ -34,9 +34,9 @@ function setProperties(object, values) {
 }
 
 /**
- * @param target - the GObject-like object to connect to
+ * @param {any} target - the GObject-like object to connect to
  * @param {string} signal - the signal name to connect to
- * @param {function} handler - the handler to connect
+ * @param {Function} handler - the handler to connect
  * @returns {Wire} a new wire
  */
 function wire(target, signal, handler) {
@@ -78,6 +78,7 @@ class Wire {
 
 if (typeof module === 'object') {
   module.exports = {
+    __esModule: true,
     idleAdd,
     idleRemove,
     setProperties,

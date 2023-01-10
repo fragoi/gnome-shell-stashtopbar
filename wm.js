@@ -11,7 +11,7 @@ const Me = ExtensionUtils.getCurrentExtension();
 const { setProperties, wire } = Me.imports.utils;
 
 /**
- * @type {( msg: string )}
+ * @type {(msg: string) => void}
  */
 var _log;
 
@@ -147,6 +147,7 @@ var WindowOverlaps = class {
 
 if (typeof module === 'object') {
   module.exports = {
+    __esModule: true,
     WindowOverlaps
   };
 }

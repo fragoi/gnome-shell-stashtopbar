@@ -48,7 +48,11 @@ const AnimationType = {
 };
 
 /**
- * @type {( msg: string )}
+ * @typedef {import('./extension').internal.TransformedAllocation} TransformedAllocation
+ */
+
+/**
+ * @type {(msg: string) => void}
  */
 var _log;
 
@@ -60,10 +64,10 @@ var _log;
  * method that removes the running transitions inside a save/restore
  * easing block.
  * 
- * @param {function} handler - the handler to wrap
+ * @param {Function} handler - the handler to wrap
  */
 function uneased(handler) {
-  return function(transition) {
+  return function (transition) {
     const actor = transition.get_animatable();
     if (!actor.get_easing_delay() && !actor.get_easing_duration()) {
       return handler.apply(null, arguments);
@@ -729,6 +733,7 @@ class Slide {
 
 if (typeof module === 'object') {
   module.exports = {
+    __esModule: true,
     Wrapper
   };
 }

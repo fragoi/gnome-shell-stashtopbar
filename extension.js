@@ -44,11 +44,11 @@ const Edge = {
 };
 
 /**
- * @typedef {{x1: number, y1: number, x2: number, y2: number}} Box
+ * @typedef {{ x1: number, y1: number, x2: number, y2: number }} Box
  */
 
 /**
- * @type {( msg: string )}
+ * @type {(msg: string) => void}
  */
 var _log;
 
@@ -71,7 +71,7 @@ function _activationFlagsToString(flags) {
 }
 
 /**
- * @param {Box}
+ * @param {Box} box
  */
 function _boxToString({ x1, y1, x2, y2 }) {
   return `[${x1},${y1},${x2},${y2}]`;
@@ -156,7 +156,7 @@ class Extension {
     if (this._actor !== Main.layoutManager.panelBox) {
       this._components.push(new UIChangeForActor(this._actor));
     } else {
-      this._components.push(new UIChangeForPanelBox(this._actor));
+      this._components.push(new UIChangeForPanelBox());
     }
 
     this._components.push(new EnsureReactive(this._actor));
@@ -524,7 +524,7 @@ class TransformedAllocation {
   }
 
   /**
-   * @param {Box} translation - the translation of the original allocation
+   * @param {Partial<Box>} translation - the translation of the original allocation
    */
   setTranslation(translation) {
     if (setProperties(this._translation, translation)) {
@@ -601,6 +601,11 @@ class TransformedAllocation {
 Signals.addSignalMethods(TransformedAllocation.prototype);
 
 class TriggerOnMapped {
+
+  /**
+   * @param {Clutter.Actor} actor 
+   * @param {() => void} trigger 
+   */
   constructor(actor, trigger) {
     this._actor = actor;
     this._trigger = trigger;
@@ -1166,7 +1171,7 @@ class StatusAreaActivations {
     this._actor = actor;
     this._activator = activator;
 
-    /** @type {Object<string, PanelMenuActivation>} */
+    /** @type {{ [key: string]: PanelMenuActivation }} */
     this._activations = {};
 
     this._wires = [];
@@ -1636,4 +1641,16 @@ class WindowOverlapsActivation {
     _log && _log(`Set window overlaps box: ${_boxToString(box)}`);
     this._windowOverlaps.setBox(box);
   }
+}
+
+var internal = {
+  TransformedAllocation
+};
+
+if (typeof module === 'object') {
+  module.exports = {
+    __esModule: true,
+    init,
+    internal
+  };
 }
