@@ -59,7 +59,7 @@ function init() {
 /**
  * @param {number} flags
  */
-function _activationFlagsToString(flags) {
+function activationFlagsToString(flags) {
   let string = '';
   for (const name in ActivationFlags) {
     if (flags & ActivationFlags[name]) {
@@ -73,7 +73,7 @@ function _activationFlagsToString(flags) {
 /**
  * @param {Box} box
  */
-function _boxToString({ x1, y1, x2, y2 }) {
+function boxToString({ x1, y1, x2, y2 }) {
   return `[${x1},${y1},${x2},${y2}]`;
 }
 
@@ -82,7 +82,7 @@ function _boxToString({ x1, y1, x2, y2 }) {
  * @param {Box} boxB - the relative to box
  * @param factor - the relative factor
  */
-function _relativeEdge(boxA, boxB, factor = 0.3) {
+function relativeEdge(boxA, boxB, factor = 0.3) {
   const { x1: x, y1: y } = boxA;
   const w = (boxA.x2 - x) || 1;
   const h = (boxA.y2 - y) || 1;
@@ -108,7 +108,7 @@ function _relativeEdge(boxA, boxB, factor = 0.3) {
   return edge;
 }
 
-function _isStartupCompleted() {
+function isStartupCompleted() {
   return Main.actionMode !== Shell.ActionMode.NONE;
 }
 
@@ -136,7 +136,7 @@ class Extension {
 
     this._activator.onFlagsChanged = () => {
       _log && _log(`Activator flags changed: [${(
-        _activationFlagsToString(this._activator.flags)
+        activationFlagsToString(this._activator.flags)
       )}]`);
     };
 
@@ -580,16 +580,16 @@ class TransformedAllocation {
     setProperties(allocated, box);
     this.__allocated = allocated;
     this.__allocation = { ...allocated };
-    _log && _log(`Allocation initialized: ${_boxToString(allocated)}`);
+    _log && _log(`Allocation initialized: ${boxToString(allocated)}`);
   }
 
   _allocationChanged() {
-    _log && _log(`Allocation changed: ${_boxToString(this.allocation)}`);
+    _log && _log(`Allocation changed: ${boxToString(this.allocation)}`);
     this.emit('allocation-changed');
   }
 
   _transformedChanged() {
-    _log && _log(`Transformed changed: ${_boxToString(this)}`);
+    _log && _log(`Transformed changed: ${boxToString(this)}`);
     this.emit('transformed-changed');
   }
 
@@ -867,7 +867,7 @@ class BarrierActivation {
   enable() {
     this._wires.forEach(e => e.connect());
 
-    if (_isStartupCompleted()) {
+    if (isStartupCompleted()) {
       this._updateBarrier();
     }
 
@@ -959,7 +959,7 @@ class BarrierActivation {
       /* calculate relative position of actor with respect to monitor */
       const [x, y] = actor.get_transformed_position();
       const [w, h] = actor.get_transformed_size();
-      edge = _relativeEdge({ x1, y1, x2, y2 }, {
+      edge = relativeEdge({ x1, y1, x2, y2 }, {
         x1: x,
         y1: y,
         x2: x + w,
@@ -1474,7 +1474,7 @@ const CanvasConstraint = GObject.registerClass(
        * they have different parents but still valid relative allocations,
        * only time will tell */
 
-      const edge = _relativeEdge(allocation, this._talloc);
+      const edge = relativeEdge(allocation, this._talloc);
       switch (edge) {
         case Edge.TOP:
           allocation.y1 = Math.max(allocation.y1, Math.ceil(this._talloc.y2));
@@ -1490,7 +1490,7 @@ const CanvasConstraint = GObject.registerClass(
           break;
       }
 
-      _log && _log(`Constraint updated allocation: ${_boxToString(allocation)}`);
+      _log && _log(`Constraint updated allocation: ${boxToString(allocation)}`);
     }
 
     _queueRelayout() {
@@ -1638,7 +1638,7 @@ class WindowOverlapsActivation {
   _updateAllocation() {
     const actor = this._talloc.actor;
     const box = actor.get_allocation_box();
-    _log && _log(`Set window overlaps box: ${_boxToString(box)}`);
+    _log && _log(`Set window overlaps box: ${boxToString(box)}`);
     this._windowOverlaps.setBox(box);
   }
 }
