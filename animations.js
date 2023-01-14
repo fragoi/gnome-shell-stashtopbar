@@ -1,6 +1,7 @@
 'use strict';
 
-/* Some notes recollected regarding activations:
+/*
+ * Some notes recollected regarding activations:
  * 
  * Never change the panel visibility.
  * When the panel is not visible some things stop working:
@@ -8,24 +9,36 @@
  * - shell components switch via ctrl+alt+tab
  * and maybe others.
  * 
+ * Never change the allocation.
+ * Changing the allocation has a number of side effects revealing some
+ * bugs at least in the followings:
+ * - Hot corners' pressure barriers
+ * - Looking Glass
+ * 
+ * Best way so far is to change only properties affecting only the
+ * rendering of the panel (transformation, scale, opacity, etc.).
+ * 
  * Trigger input region refresh:
- * this can be done by changing the allocation. Visibility is not
- * an option as per note above.
- * An additional option is to change the TransformedAllocation
- * visibility as this will trigger a change on another actor used
- * precisely for this scope.
+ * Could be done by changing the allocation or visibility, however
+ * as noted above these have side effects.
+ * Best way so far is to change the TransformedAllocation visibility
+ * as this will trigger a change on a ghost actor wich in turn causes
+ * an update of the input regions, updating so also the panel.
  * 
  * TransformedAllocation is used for:
+ * 
  * - change the panel allocation and make the rest of the extension
  *   to understant that the change is because of an activation and not
  *   because the panel has been moved or resized from code outside of
- *   this extension
+ *   this extension (however this should be avoided as noted above)
+ * 
  * - emit the transformed changed event when an activation changes the
  *   transformed position or size of the panel and wants to make the
- *   rest of the extension aware of this
+ *   rest of the extension aware of this (mainly for relayouts)
+ * 
  * - change the visibility to trigger a refresh of the input regions
  *   when the panel is virtually not visible but it's not possible or
- *   wanted to change the allocation
+ *   wanted to change the allocation (should never be wanted though)
  */
 
 const { Clutter } = imports.gi;
