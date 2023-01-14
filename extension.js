@@ -1106,8 +1106,8 @@ class PressureBarrier {
         pressure = along > 1 ? across / along : across;
         break;
     }
-    _log && _log(`Pressure: ${this._pressure}, `
-      + `across: ${across}, along: ${along}, delta: ${pressure}`);
+    _log && _log(`Pressure: ${this._pressure}, ` +
+      `across: ${across}, along: ${along}, delta: ${pressure}`);
     return pressure;
   }
 

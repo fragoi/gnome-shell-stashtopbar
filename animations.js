@@ -439,8 +439,8 @@ class Offcanvas {
         const targetY = this._active ? this._activeY : this._inactiveY;
         const translationY = targetY - actor.y;
 
-        _log && _log(`Transition for Y to value: ${translationY}, `
-          + `current: ${actor.translation_y}, delay: ${delay}`);
+        _log && _log(`Transition for Y to value: ${translationY}, ` +
+          `current: ${actor.translation_y}, delay: ${delay}`);
 
         actor.translation_y = translationY;
       }
@@ -708,8 +708,8 @@ class Slide {
     const delay = this._active ? 0 : 200;
     const translationY = this._active ? 0 : -actor.height;
 
-    _log && _log(`Translate Y to value: ${translationY}, `
-      + `current: ${actor.translation_y}, delay: ${delay}`);
+    _log && _log(`Translate Y to value: ${translationY}, ` +
+      `current: ${actor.translation_y}, delay: ${delay}`);
 
     actor.save_easing_state();
     if (delay)
