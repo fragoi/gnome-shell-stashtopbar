@@ -59,6 +59,12 @@ const AnimationType = {
 
 /**
  * @typedef {import('./extension').internal.TransformedAllocation} TransformedAllocation
+ * 
+ * @typedef Animation
+ * @property {() => void} enable
+ * @property {() => void} disable
+ * @property {(active: boolean) => void} setActive
+ * @property {() => void} onCompleted
  */
 
 /**
@@ -95,6 +101,8 @@ function uneased(handler) {
 
 /**
  * Wrapper class for configuring animation.
+ * 
+ * @implements {Animation}
  */
 var Wrapper = class {
 
@@ -107,6 +115,7 @@ var Wrapper = class {
     this._talloc = talloc;
 
     this._active = true;
+    /** @type {Animation} */
     this._animation = null;
     this._animationType = 0;
 
@@ -181,8 +190,14 @@ var Wrapper = class {
 /**
  * Change actor visibility.
  * This breaks most functionalities related to panel.
+ * 
+ * @implements {Animation}
  */
 class ShowHide {
+
+  /**
+   * @param {Clutter.Actor} actor 
+   */
   constructor(actor) {
     this._actor = actor;
     this._wasVisible = null;
@@ -213,6 +228,8 @@ class ShowHide {
  * Scale actor to 0.
  * This should be the most easy one.
  * Used as placeholder for no animation.
+ * 
+ * @implements {Animation}
  */
 class Scaled {
 
@@ -267,6 +284,9 @@ class Scaled {
   }
 }
 
+/**
+ * @implements {Animation}
+ */
 class Offcanvas {
 
   /**
@@ -527,6 +547,9 @@ class Offcanvas {
   }
 }
 
+/**
+ * @implements {Animation}
+ */
 class Fade {
 
   /**
@@ -653,6 +676,9 @@ class Fade {
   }
 }
 
+/**
+ * @implements {Animation}
+ */
 class Slide {
 
   /**
