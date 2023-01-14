@@ -5,9 +5,6 @@ const { Meta } = imports.gi;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 
-/**
- * @type {import('./utils')}
- */
 const { setProperties, wire } = Me.imports.utils;
 
 /**

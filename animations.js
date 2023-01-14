@@ -34,9 +34,6 @@ const Main = imports.ui.main;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 
-/**
- * @type {import('./utils')}
- */
 const { wire } = Me.imports.utils;
 
 const AnimationType = {

@@ -7,19 +7,8 @@ const Main = imports.ui.main;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 
-/**
- * @type {import('./animations')}
- */
 const Animations = Me.imports.animations;
-
-/**
- * @type {import('./utils')}
- */
 const { idleAdd, idleRemove, setProperties, wire } = Me.imports.utils;
-
-/**
- * @type {import('./wm')}
- */
 const { WindowOverlaps } = Me.imports.wm;
 
 const NAME = 'Stash Top Bar';
@@ -599,6 +588,8 @@ class TransformedAllocation {
   }
 }
 Signals.addSignalMethods(TransformedAllocation.prototype);
+/** @type {(s: string, ...args: any[]) => void} */
+TransformedAllocation.prototype.emit;
 
 class TriggerOnMapped {
 
@@ -1448,7 +1439,11 @@ class MessageTrayRelayout {
 }
 
 const CanvasConstraint = GObject.registerClass(
-  class CanvasConstraint extends Clutter.Constraint {
+  class CanvasConstraint extends (Clutter.Constraint) {
+
+    /**
+     * @param {TransformedAllocation} talloc 
+     */
     _init(talloc) {
       super._init();
       this._talloc = talloc;
