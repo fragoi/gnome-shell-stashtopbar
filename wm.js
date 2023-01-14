@@ -137,8 +137,8 @@ var WindowOverlaps = class {
       return false;
     }
     const { x, y, width, height } = actor.meta_window.get_frame_rect();
-    return this._box.x1 < x + width && x < this._box.x2
-      && this._box.y1 < y + height && y < this._box.y2
+    return this._box.x1 < x + width && x < this._box.x2 &&
+      this._box.y1 < y + height && y < this._box.y2;
   }
 }
 

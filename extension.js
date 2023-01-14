@@ -1001,11 +1001,11 @@ class BarrierActivation {
   _checkBarrierProps(props) {
     const barrier = this._barrier;
     if (barrier && props) {
-      return barrier.directions === props.directions
-        && barrier.x1 === props.x1
-        && barrier.y1 === props.y1
-        && barrier.x2 === props.x2
-        && barrier.y2 === props.y2;
+      return barrier.directions === props.directions &&
+        barrier.x1 === props.x1 &&
+        barrier.y1 === props.y1 &&
+        barrier.x2 === props.x2 &&
+        barrier.y2 === props.y2;
     }
     return !barrier && !props;
   }

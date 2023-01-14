@@ -486,8 +486,8 @@ class Offcanvas {
     if (monitor) {
       const y = actor.y;
       const h = actor.height;
-      const isLocalY = this._activeY !== this._inactiveY
-        && (y === this._activeY || y === this._inactiveY);
+      const isLocalY = this._activeY !== this._inactiveY &&
+        (y === this._activeY || y === this._inactiveY);
 
       /* top */
       const monitorY1 = monitor.y;
