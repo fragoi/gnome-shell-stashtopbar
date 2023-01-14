@@ -300,7 +300,6 @@ class Offcanvas {
     this._talloc = talloc;
 
     this._active = true;
-    //    this._animating = false;
     this._wasFixedPositionSet = null;
 
     this._activeY = 0;
@@ -406,11 +405,6 @@ class Offcanvas {
     if (!this._transitionY) {
       this._onCompleted();
     }
-
-    //    /* (maybe) this should go away */
-    //    if (!actor.is_mapped()) {
-    //      this._onCompleted();
-    //    }
   }
 
   _shouldChangeY() {
@@ -434,16 +428,12 @@ class Offcanvas {
     const actor = this._actor;
     const delay = this._active ? 0 : 200;
 
-    //    if (!this._animating) {
-    //      this._animating = true;
-    //    }
-
     actor.save_easing_state();
     try {
 
       if (delay)
         actor.set_easing_delay(delay);
-      //      actor.set_easing_duration(10000);
+      // actor.set_easing_duration(10000);
 
       if (this._shouldChangeY()) {
         const targetY = this._active ? this._activeY : this._inactiveY;
@@ -461,12 +451,6 @@ class Offcanvas {
   }
 
   _onCompleted(transition = null) {
-    //    if (!this._animating) {
-    //      return;
-    //    }
-    //
-    //    this._animating = false;
-
     const actor = this._actor;
     const allocation = this._talloc.allocation;
     const translation = {};
