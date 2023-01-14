@@ -242,29 +242,30 @@ class Scaled {
   }
 
   enable() {
-    if (this._scaleY !== null) {
+    if (this._scaleY !== null)
       return;
-    }
+
     this._scaleY = this._talloc.actor.scale_y;
   }
 
   disable() {
-    if (this._scaleY === null) {
+    if (this._scaleY === null)
       return;
-    }
+
     this._activate();
     this._scaleY = null;
   }
 
   setActive(value) {
-    if (this._scaleY === null) {
+    if (this._scaleY === null)
       return;
-    }
+
     if (value) {
       this._activate();
     } else {
       this._deactivate();
     }
+
     this.onCompleted();
   }
 
@@ -570,17 +571,17 @@ class Fade {
   }
 
   enable() {
-    if (this._opacity !== null) {
+    if (this._opacity !== null)
       return;
-    }
+
     this._opacity = this._actor.opacity;
     this._scaled.enable();
   }
 
   disable() {
-    if (this._opacity === null) {
+    if (this._opacity === null)
       return;
-    }
+
     this._actor.opacity = this._opacity;
     this._opacity = null;
     this._scaled.disable();
@@ -660,10 +661,9 @@ class Fade {
   }
 
   _onStopped(active) {
-    if (!this._active === active) {
-      return;
+    if (this._active === active) {
+      this._onCompleted();
     }
-    this._onCompleted();
   }
 
   _onCompleted() {
