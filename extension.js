@@ -110,7 +110,6 @@ class Extension {
 
     this._talloc = new TransformedAllocation(this._actor);
 
-    //    this._animation = new OffcanvasAnimation(this._talloc);
     this._animation = new Animations.Wrapper(this._gsettings, this._talloc);
 
     this._unredirect = new Unredirect();
@@ -165,18 +164,9 @@ class Extension {
     this._components.push(new StatusAreaActivations(Main.panel, this._activator));
     //    this._components.push(new KeyFocusTracker(this._actor, this._activator));
     this._components.push(new WindowOverlapsActivation(this._talloc, this._activator));
+
     this._components.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
     this._components.push(new ActiveMenuRelayout(this._talloc));
-
-    //    const panel = Main.panel;
-    //    for (const p in panel.statusArea) {
-    //      const actor = panel.statusArea[p];
-    //      this._components.push(new KeyFocusActivation(actor, this._activator));
-    //      if (actor.menu) {
-    //        this._components.push(new MenuActivation(actor.menu, this._activator));
-    ////        this._components.push(new MenuRelayout(this._talloc, actor.menu));
-    //      }
-    //    }
 
     this._components.push(new TriggerOnMapped(this._actor, trigger));
 
@@ -284,15 +274,18 @@ class UIChangeForPanelBox {
 }
 
 class EnsureReactive {
+
+  /**
+   * @param {Clutter.Actor} actor 
+   */
   constructor(actor) {
     this._actor = actor;
     this._wasReactive = null;
   }
 
   enable() {
-    if (this._wasReactive !== null) {
+    if (this._wasReactive !== null)
       return;
-    }
 
     this._wasReactive = this._actor.get_reactive();
 
@@ -302,9 +295,8 @@ class EnsureReactive {
   }
 
   disable() {
-    if (this._wasReactive === null) {
+    if (this._wasReactive === null)
       return;
-    }
 
     if (!this._wasReactive) {
       this._actor.set_reactive(false);
@@ -330,9 +322,9 @@ class InputRegionTrigger {
   }
 
   enable() {
-    if (this._actor) {
+    if (this._actor)
       return;
-    }
+
     this._actor = new Clutter.Actor();
 
     Main.layoutManager.addChrome(this._actor);
@@ -345,9 +337,9 @@ class InputRegionTrigger {
   }
 
   disable() {
-    if (!this._actor) {
+    if (!this._actor)
       return;
-    }
+
     this._wire.disconnect();
     this._actor.destroy();
     this._actor = null;
@@ -355,104 +347,6 @@ class InputRegionTrigger {
 
   _onVisibleChanged() {
     this._actor.visible = this._talloc.visible;
-  }
-}
-
-class OffcanvasAnimation {
-  constructor(talloc) {
-    const actor = talloc.actor;
-
-    this._actor = actor;
-    this._talloc = talloc;
-
-    this._active = true;
-    this._animating = false;
-
-    this._wires = [
-      wire(actor, 'transitions-completed', this._onCompleted.bind(this)),
-      wire(actor, 'notify::translation-y', this._onTransition.bind(this))
-    ];
-  }
-
-  enable() {
-    this._wires.forEach(e => e.connect());
-  }
-
-  disable() {
-    this._wires.forEach(e => e.disconnect());
-  }
-
-  get active() {
-    return this._active;
-  }
-
-  setActive(value) {
-    if (this._active !== value) {
-      this._active = value;
-      if (value) {
-        this._activate();
-      } else {
-        this._deactivate();
-      }
-    }
-  }
-
-  _activate() {
-    this._slide(this._actor.height);
-  }
-
-  _deactivate() {
-    this._slide(-this._actor.height, 200);
-  }
-
-  _slide(value, delay) {
-    const actor = this._actor;
-
-    if (!this._animating) {
-      this._animating = true;
-      //        this._value = actor.translation_y;
-      this._value = this._translation_y = actor.translation_y;
-      //        this._value = actor.y;
-    }
-
-    this._value += value;
-    actor.save_easing_state();
-    if (delay)
-      actor.set_easing_delay(delay);
-    //    actor.set_easing_duration(3000);
-    actor.translation_y = this._value;
-    //      actor.y = this._value;
-    actor.restore_easing_state();
-
-    /* TODO: (maybe) this should go away when implementing proper transition */
-    if (!actor.is_mapped()) {
-      this._onCompleted();
-    }
-  }
-
-  _onCompleted() {
-    if (!this._animating) {
-      return;
-    }
-
-    this._animating = false;
-
-    const actor = this._actor;
-    const allocation = this._talloc.allocation;
-    const translated_y = actor.translation_y - this._translation_y;
-
-    /* instruct transformed allocation that this change is a transformation */
-    allocation.y1 += translated_y;
-    allocation.y2 += translated_y;
-
-    /* change actor position and reset translation */
-    actor.y += translated_y;
-    actor.translation_y = this._translation_y;
-  }
-
-  _onTransition() {
-    const translation_y = this._actor.translation_y;
-    this._talloc.setTranslation({ y1: translation_y, y2: translation_y });
   }
 }
 
@@ -796,7 +690,6 @@ class HoverTracker {
 
     /* check related actor only when there is no event grab
      * as we may then not receive another leave event */
-    //    if (!(Main.actionMode & Shell.ActionMode.POPUP)) {
     if (!this.preventSafeLeave()) {
       const related = event.get_related();
       if (related && actor.contains(related)) {
@@ -1011,7 +904,7 @@ class BarrierActivation {
   }
 
   _hotCorners() {
-    /** @type {Array} */
+    /** @type {any[]} */
     const hotCorners = Main.layoutManager.hotCorners;
     if (!hotCorners || !hotCorners.find(e => e)) {
       return [0, 0];
@@ -1082,9 +975,9 @@ class PressureBarrier {
     /* maybe I should release the pointer when there is no timeout
      * so I can support having a monitor after the barrier?
      * Need to check with more monitors */
-    //    else if (this.timeout <= 0) {
-    //      this._barrier.release(event);
-    //    }
+    // else if (this.timeout <= 0) {
+    //   this._barrier.release(event);
+    // }
   }
 
   _onBarrierLeft(_barrier, _event) {
@@ -1309,85 +1202,6 @@ class PopupMenuActivation {
   }
 }
 
-class KeyFocusActivation {
-  constructor(actor, activator) {
-    this._activator = activator;
-    this._wires = [
-      wire(actor, 'key-focus-in', this._activate.bind(this)),
-      wire(actor, 'key-focus-out', this._deactivate.bind(this))
-    ];
-  }
-
-  enable() {
-    this._wires.forEach(e => e.connect());
-  }
-
-  disable() {
-    this._wires.forEach(e => e.disconnect());
-  }
-
-  _activate() {
-    this._activator.activate(ActivationFlags.KEYFOCUS);
-  }
-
-  _deactivate() {
-    this._activator.deactivate(ActivationFlags.KEYFOCUS);
-  }
-}
-
-class MenuActivation {
-  constructor(menu, activator) {
-    this._activator = activator;
-    this._wire = wire(
-      menu,
-      'open-state-changed',
-      this._onOpenChanged.bind(this)
-    );
-  }
-
-  enable() {
-    this._wire.connect();
-  }
-
-  disable() {
-    this._wire.disconnect();
-  }
-
-  _onOpenChanged(menu) {
-    if (menu.isOpen) {
-      this._activator.activate(ActivationFlags.MENUOPEN);
-    } else {
-      this._activator.deactivate(ActivationFlags.MENUOPEN);
-    }
-  }
-}
-
-class MenuRelayout {
-  constructor(talloc, menu) {
-    this._menu = menu;
-    this._wire = wire(
-      talloc,
-      'transformed-changed',
-      this._relayout.bind(this)
-    );
-  }
-
-  enable() {
-    this._wire.connect();
-  }
-
-  disable() {
-    this._wire.disconnect();
-  }
-
-  _relayout() {
-    const menu = this._menu;
-    if (menu.isOpen && menu.actor) {
-      menu.actor.queue_relayout();
-    }
-  }
-}
-
 class ActiveMenuRelayout {
   constructor(talloc) {
     this._wire = wire(
@@ -1511,14 +1325,15 @@ class Unredirect {
   }
 
   setDisabled(value) {
-    if (this._disabled === value) {
+    if (this._disabled === value)
       return;
-    }
+
     if (value) {
       Meta.disable_unredirect_for_display(global.display);
     } else {
       Meta.enable_unredirect_for_display(global.display);
     }
+
     this._disabled = value;
   }
 }
@@ -1568,9 +1383,9 @@ class KeyFocusTracker {
   }
 
   _onKeyFocusChanged() {
-    if (this._withinModal()) {
+    if (this._withinModal())
       return;
-    }
+
     const keyFocus = this._keyFocus;
     _log && _log(`Key focus changed: ${keyFocus}`);
     if (keyFocus && this._actor.contains(keyFocus)) {
