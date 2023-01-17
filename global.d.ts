@@ -48,7 +48,9 @@ declare namespace imports.misc {
 }
 
 declare namespace Clutter {
-  type Actor = any;
+  interface Actor {
+    [any: string]: any;
+  }
 }
 
 declare namespace Gio {
