@@ -205,6 +205,10 @@ class Extension {
 }
 
 class UIChangeForActor {
+
+  /**
+   * @param {Clutter.Actor} actor 
+   */
   constructor(actor) {
     this._actor = actor;
   }
@@ -351,6 +355,10 @@ class InputRegionTrigger {
 }
 
 class TransformedAllocation {
+
+  /**
+   * @param {Clutter.Actor} actor 
+   */
   constructor(actor) {
     this._actor = actor;
     this._translation = { x1: 0, y1: 0, x2: 0, y2: 0 };
@@ -617,6 +625,11 @@ class IdleActivation {
 }
 
 class HoverActivation {
+
+  /**
+   * @param {Clutter.Actor} actor 
+   * @param {Activator} activator 
+   */
   constructor(actor, activator) {
     this._hoverTracker = new HoverTracker(actor);
     this._hoverTracker.onHoverChanged = () => {
@@ -641,6 +654,10 @@ class HoverActivation {
 }
 
 class HoverTracker {
+
+  /**
+   * @param {Clutter.Actor} actor 
+   */
   constructor(actor) {
     this._hover = false;
     this._wires = [
@@ -712,6 +729,12 @@ class HoverTracker {
  * is in relative coordinates in respect to the stage in any case.
  */
 class BarrierActivation {
+
+  /**
+   * @param {TransformedAllocation} talloc 
+   * @param {Gio.Settings} gsettings 
+   * @param {Activator} activator 
+   */
   constructor(talloc, gsettings, activator) {
     this._talloc = talloc;
     this._gsettings = gsettings;
@@ -1020,6 +1043,11 @@ class PressureBarrier {
 }
 
 class OverviewActivation {
+
+  /**
+   * @param {any} overview 
+   * @param {Activator} activator 
+   */
   constructor(overview, activator) {
     this._activator = activator;
     this._wires = [
@@ -1048,7 +1076,7 @@ class OverviewActivation {
 class StatusAreaActivations {
 
   /**
-   * @param {Clutter.Actor} actor - the panel
+   * @param {Clutter.Actor} actor - the panel (Main.panel)
    * @param {Activator} activator
    */
   constructor(actor, activator) {
@@ -1199,6 +1227,10 @@ class PopupMenuActivation {
 }
 
 class ActiveMenuRelayout {
+
+  /**
+   * @param {TransformedAllocation} talloc 
+   */
   constructor(talloc) {
     this._wire = wire(
       talloc,
@@ -1224,6 +1256,11 @@ class ActiveMenuRelayout {
 }
 
 class MessageTrayRelayout {
+
+  /**
+   * @param {TransformedAllocation} talloc 
+   * @param {Clutter.Actor} messageTray 
+   */
   constructor(talloc, messageTray) {
     this._messageTray = messageTray;
     this._constraint = new CanvasConstraint(talloc);
@@ -1320,6 +1357,9 @@ class Unredirect {
     this._disabled = false;
   }
 
+  /**
+   * @param {boolean} value 
+   */
   setDisabled(value) {
     if (this._disabled === value)
       return;
@@ -1335,6 +1375,11 @@ class Unredirect {
 }
 
 class KeyFocusTracker {
+
+  /**
+   * @param {Clutter.Actor} actor 
+   * @param {Activator} activator 
+   */
   constructor(actor, activator) {
     this._actor = actor;
     this._activator = activator;
