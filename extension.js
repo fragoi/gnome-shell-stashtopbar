@@ -1074,9 +1074,9 @@ class StatusAreaActivations {
 
   disable() {
     this._wires.forEach(e => e.disconnect());
-    for (const key in this._activations) {
-      this._removeActivation(key);
-    }
+    Object.keys(this._activations).forEach(key =>
+      this._deleteActivation(key)
+    );
   }
 
   _updateStatusArea() {
@@ -1086,73 +1086,66 @@ class StatusAreaActivations {
       const actor = statusArea[key];
       this._setActivation(key, actor);
     }
-    for (const key in this._activations) {
-      if (!(key in statusArea)) {
-        this._removeActivation(key);
-      }
-    }
+    Object.keys(this._activations).forEach(key =>
+      key in statusArea || this._deleteActivation(key)
+    );
   }
 
+  /**
+   * @param {string} key 
+   * @param {any} actor 
+   */
   _setActivation(key, actor) {
     let activation = this._activations[key];
-    if (activation && activation.actor !== actor) {
-      _log && _log(`Disable activation for key: ${key}`);
-      activation.disable();
-      activation = null;
-    }
-    if (!activation && actor) {
+    if (!activation) {
       _log && _log(`Create new activation for key: ${key}`);
-      activation = new PanelMenuActivation(actor, this._activator);
+      activation = new PanelMenuActivation(this._activator);
       activation.onDestroy = () => {
-        _log && _log(`Delete activation for key: ${key}`);
+        _log && _log(`Destroyed activation for key: ${key}`);
         delete this._activations[key];
       };
       this._activations[key] = activation;
-      activation.enable();
     }
-    if (!actor) {
-      _log && _log(`Delete activation for key: ${key}`);
-      delete this._activations[key];
-    }
+    activation.setActor(actor);
   }
 
-  _removeActivation(key) {
-    _log && _log(`Remove activation for key: ${key}`);
+  /**
+   * @param {string} key 
+   */
+  _deleteActivation(key) {
+    _log && _log(`Delete activation for key: ${key}`);
     const activation = this._activations[key];
     if (activation) {
-      activation.disable();
+      activation.setActor(null);
     }
     delete this._activations[key];
   }
 }
 
 class PanelMenuActivation {
-  constructor(actor, activator) {
-    this._actor = actor;
+
+  /**
+   * @param {Activator} activator 
+   */
+  constructor(activator) {
     this._activator = activator;
-
     this._menuActivator = new PopupMenuActivation(activator);
-
+    this._actor = null;
     this._wires = [
-      wire(actor, 'key-focus-in', this._onKeyFocusIn.bind(this)),
-      wire(actor, 'key-focus-out', this._onKeyFocusOut.bind(this)),
-      wire(actor, 'menu-set', this._onMenuSet.bind(this)),
-      wire(actor, 'destroy', this._onDestroy.bind(this))
+      wire(null, 'key-focus-in', this._onKeyFocusIn.bind(this)),
+      wire(null, 'key-focus-out', this._onKeyFocusOut.bind(this)),
+      wire(null, 'menu-set', this._onMenuSet.bind(this)),
+      wire(null, 'destroy', this._onDestroy.bind(this))
     ];
   }
 
-  get actor() {
-    return this._actor;
-  }
+  setActor(actor) {
+    if (this._actor === actor)
+      return;
 
-  enable() {
-    this._wires.forEach(e => e.connect());
-    this._menuActivator.setMenu(this._actor.menu);
-  }
-
-  disable() {
-    this._wires.forEach(e => e.disconnect());
-    this._menuActivator.setMenu(null);
+    this._actor = actor;
+    this._wires.forEach(e => e.setTarget(actor).connect());
+    this._menuActivator.setMenu(actor ? actor.menu : null);
   }
 
   onDestroy() { }
@@ -1165,18 +1158,21 @@ class PanelMenuActivation {
     this._activator.deactivate(ActivationFlags.KEYFOCUS);
   }
 
-  _onMenuSet() {
-    this._menuActivator.setMenu(this._actor.menu);
+  _onMenuSet(actor) {
+    this._menuActivator.setMenu(actor.menu);
   }
 
   _onDestroy() {
-    this._wires.forEach(e => e.setTarget(null));
-    this._menuActivator.setMenu(null);
+    this.setActor(null);
     this.onDestroy();
   }
 }
 
 class PopupMenuActivation {
+
+  /**
+   * @param {Activator} activator 
+   */
   constructor(activator) {
     this._activator = activator;
     this._wires = [
