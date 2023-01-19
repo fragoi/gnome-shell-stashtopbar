@@ -217,9 +217,8 @@ class UIChangeForActor {
     const panel = Main.panel;
     const panelBox = Main.layoutManager.panelBox;
 
-    if (this._actor.contains(panel)) {
+    if (this._actor.contains(panel))
       return;
-    }
 
     Main.layoutManager.addChrome(this._actor);
 
@@ -236,9 +235,8 @@ class UIChangeForActor {
     const panel = Main.panel;
     const panelBox = Main.layoutManager.panelBox;
 
-    if (panelBox.contains(panel)) {
+    if (panelBox.contains(panel))
       return;
-    }
 
     this._actor.remove_child(panel);
     panelBox.add_child(panel);
@@ -457,16 +455,16 @@ class TransformedAllocation {
   }
 
   _ensureAllocation() {
-    if (this.__allocated) {
+    if (this.__allocated)
       return;
-    }
+
     const box = this._actor.get_allocation_box();
     /* we need a double check here because the above call may initialize
      * the allocation and trigger the connected signal, causing a double
      * initialization, not a big issue but better to avoid */
-    if (this.__allocated) {
+    if (this.__allocated)
       return;
-    }
+
     const allocated = { x1: 0, y1: 0, x2: 0, y2: 0 };
     setProperties(allocated, box);
     this.__allocated = allocated;
@@ -603,17 +601,17 @@ class IdleActivation {
   }
 
   _idleAdd() {
-    if (this._idleId) {
+    if (this._idleId)
       return;
-    }
+
     _log && _log('Idle add');
     this._idleId = idleAdd(this._onIdle.bind(this));
   }
 
   _idleRemove() {
-    if (!this._idleId) {
+    if (!this._idleId)
       return;
-    }
+
     idleRemove(this._idleId);
     this._idleId = 0;
   }
@@ -790,24 +788,22 @@ class BarrierActivation {
   }
 
   _activate() {
-    if (!this._talloc.actor.visible) {
+    if (!this._talloc.actor.visible)
       return;
-    }
+
     this._activator.activate(ActivationFlags.HOVER);
   }
 
   _updateBarrier() {
     const props = this._barrierProps();
 
-    if (this._checkBarrierProps(props)) {
+    if (this._checkBarrierProps(props))
       return;
-    }
 
     this._destroyBarrier();
 
-    if (!props) {
+    if (!props)
       return;
-    }
 
     _log && _log(`Creating new barrier with props: ${JSON.stringify(props)}`);
 
@@ -846,16 +842,14 @@ class BarrierActivation {
 
   _barrierProps() {
     let edge = this._gsettings.get_enum('barrier-edge');
-    if (edge === Edge.NONE) {
+    if (edge === Edge.NONE)
       return;
-    }
 
     /* use same monitor of actor */
     const actor = this._talloc.actor;
     const monitor = Main.layoutManager.findMonitorForActor(actor);
-    if (!monitor) {
+    if (!monitor)
       return;
-    }
 
     const x1 = monitor.x;
     const y1 = monitor.y;
@@ -980,9 +974,9 @@ class PressureBarrier {
   onHit() { }
 
   _onBarrierHit(_barrier, event) {
-    if (this._hit) {
+    if (this._hit)
       return;
-    }
+
     if (event.time >= this._expire) {
       this._expire = event.time + this.timeout;
       this._pressure = 0;
@@ -1267,16 +1261,16 @@ class MessageTrayRelayout {
   }
 
   enable() {
-    if (this._enabled()) {
+    if (this._enabled())
       return;
-    }
+
     this._messageTray.add_constraint(this._constraint);
   }
 
   disable() {
-    if (!this._enabled()) {
+    if (!this._enabled())
       return;
-    }
+
     this._messageTray.remove_constraint(this._constraint);
   }
 
