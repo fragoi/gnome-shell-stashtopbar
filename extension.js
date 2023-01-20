@@ -14,15 +14,6 @@ const { WindowOverlaps } = Me.imports.wm;
 const NAME = 'Stash Top Bar';
 const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
 
-const ActivationFlags = {
-  HOVER: 1 << 0,
-  OVERVIEW: 1 << 1,
-  KEYFOCUS: 1 << 2,
-  MENUOPEN: 1 << 3,
-  KEYFOCUS_TRACKER: 1 << 4,
-  WINDOW_OVERLAPS: 1 << 5
-};
-
 const Edge = {
   NONE: 0,
   AUTO: -1,
@@ -43,20 +34,6 @@ var _log;
 
 function init() {
   return new Extension();
-}
-
-/**
- * @param {number} flags
- */
-function activationFlagsToString(flags) {
-  let string = '';
-  for (const name in ActivationFlags) {
-    if (flags & ActivationFlags[name]) {
-      string && (string += ', ');
-      string += name;
-    }
-  }
-  return string;
 }
 
 /**
@@ -122,12 +99,6 @@ class Extension {
 
     this._activator.onActiveChanged = trigger;
 
-    this._activator.onFlagsChanged = () => {
-      _log && _log(`Activator flags changed: [${(
-        activationFlagsToString(this._activator.flags)
-      )}]`);
-    };
-
     this._activation.onActiveChanged = () => {
       if (this._activation.active)
         this._unredirect.setDisabled(true);
@@ -154,15 +125,12 @@ class Extension {
     this._components.push(this._animation);
     this._components.push(this._activation);
 
-    this._components.push(new HoverActivation(this._actor, this._activator));
-    this._components.push(new BarrierActivation(
-      this._talloc,
-      this._gsettings,
-      this._activator
-    ));
+    const hover = this._activator.newActivation('Hover');
+    this._components.push(new HoverActivation(this._actor, hover));
+    this._components.push(new BarrierActivation(this._talloc, this._gsettings, hover));
     this._components.push(new OverviewActivation(Main.overview, this._activator));
     this._components.push(new StatusAreaActivations(Main.panel, this._activator));
-    //    this._components.push(new KeyFocusTracker(this._actor, this._activator));
+    // this._components.push(new KeyFocusTracker(this._actor, this._activator));
     this._components.push(new WindowOverlapsActivation(this._talloc, this._activator));
 
     this._components.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
@@ -531,36 +499,67 @@ class TriggerOnMapped {
 
 class Activator {
   constructor() {
-    this._flags = 0;
+    this._count = 0;
   }
 
   get active() {
-    return !!this._flags;
+    return !!this._count;
   }
 
   onActiveChanged() { }
 
-  activate(flags) {
-    this._setFlags(this._flags | flags);
+  /**
+   * @param {string} name 
+   */
+  newActivation(name) {
+    return new Activation(this, name);
   }
 
-  deactivate(flags) {
-    this._setFlags(this._flags & ~flags);
+  get count() {
+    return this._count;
   }
 
-  get flags() {
-    return this._flags;
+  increase() {
+    this._count++;
+    if (this._count === 1) {
+      this.onActiveChanged();
+    }
   }
 
-  onFlagsChanged() { }
+  decrease() {
+    this._count--;
+    if (this._count === 0) {
+      this.onActiveChanged();
+    }
+  }
+}
 
-  _setFlags(flags) {
-    const pre = this._flags;
-    if (pre !== flags) {
-      this._flags = flags;
-      this.onFlagsChanged();
-      if (!!pre !== !!flags) {
-        this.onActiveChanged();
+class Activation {
+
+  /**
+   * @param {Activator} activator 
+   * @param {string} name 
+   */
+  constructor(activator, name) {
+    this.activator = activator;
+    this.name = name;
+    this._active = false;
+  }
+
+  get active() {
+    return this._active;
+  }
+
+  set active(value) {
+    value = !!value;
+    if (this._active !== value) {
+      this._active = value;
+      if (value) {
+        _log && _log(`Activate: ${this.name}`);
+        this.activator.increase();
+      } else {
+        _log && _log(`Deactivate: ${this.name}`);
+        this.activator.decrease();
       }
     }
   }
@@ -626,19 +625,15 @@ class HoverActivation {
 
   /**
    * @param {Clutter.Actor} actor 
-   * @param {Activator} activator 
+   * @param {Activation} activation 
    */
-  constructor(actor, activator) {
+  constructor(actor, activation) {
     this._hoverTracker = new HoverTracker(actor);
     this._hoverTracker.onHoverChanged = () => {
-      if (this._hoverTracker.hover) {
-        activator.activate(ActivationFlags.HOVER);
-      } else {
-        activator.deactivate(ActivationFlags.HOVER);
-      }
+      activation.active = this._hoverTracker.hover;
     };
     this._hoverTracker.preventSafeLeave = () => {
-      return activator.flags !== ActivationFlags.HOVER;
+      return activation.activator.count !== 1;
     };
   }
 
@@ -731,12 +726,12 @@ class BarrierActivation {
   /**
    * @param {TransformedAllocation} talloc 
    * @param {Gio.Settings} gsettings 
-   * @param {Activator} activator 
+   * @param {Activation} activation 
    */
-  constructor(talloc, gsettings, activator) {
+  constructor(talloc, gsettings, activation) {
     this._talloc = talloc;
     this._gsettings = gsettings;
-    this._activator = activator;
+    this._activation = activation;
 
     this._barrier = null;
     this._pressureBarrier = new PressureBarrier();
@@ -791,7 +786,7 @@ class BarrierActivation {
     if (!this._talloc.actor.visible)
       return;
 
-    this._activator.activate(ActivationFlags.HOVER);
+    this._activation.active = true;
   }
 
   _updateBarrier() {
@@ -1039,14 +1034,14 @@ class PressureBarrier {
 class OverviewActivation {
 
   /**
-   * @param {any} overview 
+   * @param {any} overview - the overview (Main.overview)
    * @param {Activator} activator 
    */
   constructor(overview, activator) {
-    this._activator = activator;
+    this._activation = activator.newActivation('Overview');
     this._wires = [
-      wire(overview, 'showing', this._activate.bind(this)),
-      wire(overview, 'hiding', this._deactivate.bind(this))
+      wire(overview, 'showing', this._onShowing.bind(this)),
+      wire(overview, 'hiding', this._onHiding.bind(this))
     ];
   }
 
@@ -1058,12 +1053,12 @@ class OverviewActivation {
     this._wires.forEach(e => e.disconnect());
   }
 
-  _activate() {
-    this._activator.activate(ActivationFlags.OVERVIEW);
+  _onShowing() {
+    this._activation.active = true;
   }
 
-  _deactivate() {
-    this._activator.deactivate(ActivationFlags.OVERVIEW);
+  _onHiding() {
+    this._activation.active = false;
   }
 }
 
@@ -1071,7 +1066,7 @@ class StatusAreaActivations {
 
   /**
    * @param {Clutter.Actor} actor - the panel (Main.panel)
-   * @param {Activator} activator
+   * @param {Activator} activator 
    */
   constructor(actor, activator) {
     this._actor = actor;
@@ -1121,7 +1116,7 @@ class StatusAreaActivations {
     let activation = this._activations[key];
     if (!activation) {
       _log && _log(`Create new activation for key: ${key}`);
-      activation = new PanelMenuActivation(this._activator);
+      activation = new PanelMenuActivation(this._activator, key);
       activation.onDestroy = () => {
         _log && _log(`Destroyed activation for key: ${key}`);
         delete this._activations[key];
@@ -1148,10 +1143,11 @@ class PanelMenuActivation {
 
   /**
    * @param {Activator} activator 
+   * @param {string} key 
    */
-  constructor(activator) {
-    this._activator = activator;
-    this._menuActivator = new PopupMenuActivation(activator);
+  constructor(activator, key) {
+    this._activation = activator.newActivation(`Keyfocus: ${key}`);
+    this._menuActivation = new PopupMenuActivation(activator, key);
     this._actor = null;
     this._wires = [
       wire(null, 'key-focus-in', this._onKeyFocusIn.bind(this)),
@@ -1167,21 +1163,22 @@ class PanelMenuActivation {
 
     this._actor = actor;
     this._wires.forEach(e => e.setTarget(actor).connect());
-    this._menuActivator.setMenu(actor ? actor.menu : null);
+    this._menuActivation.setMenu(actor ? actor.menu : null);
+    this._activation.active = actor && actor.has_key_focus();
   }
 
   onDestroy() { }
 
   _onKeyFocusIn() {
-    this._activator.activate(ActivationFlags.KEYFOCUS);
+    this._activation.active = true;
   }
 
   _onKeyFocusOut() {
-    this._activator.deactivate(ActivationFlags.KEYFOCUS);
+    this._activation.active = false;
   }
 
   _onMenuSet(actor) {
-    this._menuActivator.setMenu(actor.menu);
+    this._menuActivation.setMenu(actor.menu);
   }
 
   _onDestroy() {
@@ -1194,9 +1191,10 @@ class PopupMenuActivation {
 
   /**
    * @param {Activator} activator 
+   * @param {string} key 
    */
-  constructor(activator) {
-    this._activator = activator;
+  constructor(activator, key) {
+    this._activation = activator.newActivation(`Menuopen: ${key}`);
     this._wires = [
       wire(null, 'open-state-changed', this._onOpenChanged.bind(this)),
       wire(null, 'destroy', this._onDestroy.bind(this))
@@ -1205,14 +1203,11 @@ class PopupMenuActivation {
 
   setMenu(menu) {
     this._wires.forEach(e => e.setTarget(menu).connect());
+    this._activation.active = menu && menu.isOpen;
   }
 
   _onOpenChanged(menu) {
-    if (menu.isOpen) {
-      this._activator.activate(ActivationFlags.MENUOPEN);
-    } else {
-      this._activator.deactivate(ActivationFlags.MENUOPEN);
-    }
+    this._activation.active = menu.isOpen;
   }
 
   _onDestroy() {
@@ -1376,7 +1371,7 @@ class KeyFocusTracker {
    */
   constructor(actor, activator) {
     this._actor = actor;
-    this._activator = activator;
+    this._activation = activator.newActivation('KeyFocusTracker');
 
     this._keyFocus = null;
     this._modal = false;
@@ -1394,16 +1389,17 @@ class KeyFocusTracker {
 
   disable() {
     this._wire.disconnect();
+    this._activation.active = false;
     this._keyFocus = null;
     this._modal = false;
   }
 
   _activate() {
-    this._activator.activate(ActivationFlags.KEYFOCUS_TRACKER);
+    this._activation.active = true;
   }
 
   _deactivate() {
-    this._activator.deactivate(ActivationFlags.KEYFOCUS_TRACKER);
+    this._activation.active = false;
   }
 
   /**
@@ -1443,12 +1439,12 @@ class KeyFocusTracker {
 class WindowOverlapsActivation {
 
   /**
-   * @param {TransformedAllocation} talloc
-   * @param {Activator} activator
+   * @param {TransformedAllocation} talloc 
+   * @param {Activator} activator 
    */
   constructor(talloc, activator) {
     this._talloc = talloc;
-    this._activator = activator;
+    this._activation = activator.newActivation('WindowOverlaps');
 
     this._windowOverlaps = new WindowOverlaps();
     this._windowOverlaps.onHasOverlapsChanged = this._toggle.bind(this);
@@ -1470,14 +1466,11 @@ class WindowOverlapsActivation {
   disable() {
     this._wire.disconnect();
     this._windowOverlaps.disable();
+    this._activation.active = false;
   }
 
   _toggle() {
-    if (!this._windowOverlaps.hasOverlaps) {
-      this._activator.activate(ActivationFlags.WINDOW_OVERLAPS);
-    } else {
-      this._activator.deactivate(ActivationFlags.WINDOW_OVERLAPS);
-    }
+    this._activation.active = !this._windowOverlaps.hasOverlaps;
   }
 
   _updateAllocation() {
