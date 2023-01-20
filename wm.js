@@ -71,12 +71,11 @@ var WindowOverlaps = class {
   }
 
   _trackActor(actor) {
-    if (!actor.meta_window) {
+    if (!actor.meta_window)
       return;
-    }
-    if (actor[this._symbol]) {
+
+    if (actor[this._symbol])
       return;
-    }
 
     _log && _log(`Track actor: ${actor}`);
 
@@ -97,9 +96,8 @@ var WindowOverlaps = class {
 
   _untrackActor(actor) {
     const data = actor[this._symbol];
-    if (!data) {
+    if (!data)
       return;
-    }
 
     _log && _log(`Untrack actor: ${actor}`);
 
@@ -116,9 +114,8 @@ var WindowOverlaps = class {
 
   _updateOverlap(actor) {
     const data = actor[this._symbol];
-    if (!data) {
+    if (!data)
       return;
-    }
 
     _log && _log(`Update overlap for actor: ${actor}`);
 
@@ -130,12 +127,12 @@ var WindowOverlaps = class {
   }
 
   _actorOverlaps(actor) {
-    if (!actor.visible) {
+    if (!actor.visible)
       return false;
-    }
-    if (!actor.meta_window) {
+
+    if (!actor.meta_window)
       return false;
-    }
+
     const { x, y, width, height } = actor.meta_window.get_frame_rect();
     return this._box.x1 < x + width && x < this._box.x2 &&
       this._box.y1 < y + height && y < this._box.y2;
