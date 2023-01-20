@@ -93,11 +93,11 @@ class Extension {
 
     this._activation = new IdleActivation(true);
 
-    this._activator = new Activator();
+    this._acounter = new ActivationCounter();
 
-    const trigger = () => this._activation.setActive(this._activator.active);
+    const trigger = () => this._activation.setActive(this._acounter.active);
 
-    this._activator.onActiveChanged = trigger;
+    this._acounter.onActiveChanged = trigger;
 
     this._activation.onActiveChanged = () => {
       if (this._activation.active)
@@ -125,13 +125,13 @@ class Extension {
     this._components.push(this._animation);
     this._components.push(this._activation);
 
-    const hover = this._activator.newActivation('Hover');
+    const hover = this._acounter.newActivation('Hover');
     this._components.push(new HoverActivation(this._actor, hover));
     this._components.push(new BarrierActivation(this._talloc, this._gsettings, hover));
-    this._components.push(new OverviewActivation(Main.overview, this._activator));
-    this._components.push(new StatusAreaActivations(Main.panel, this._activator));
+    this._components.push(new OverviewActivation(Main.overview, this._acounter));
+    this._components.push(new StatusAreaActivations(Main.panel, this._acounter));
     // this._components.push(new KeyFocusTracker(this._actor, this._activator));
-    this._components.push(new WindowOverlapsActivation(this._talloc, this._activator));
+    this._components.push(new WindowOverlapsActivation(this._talloc, this._acounter));
 
     this._components.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
     this._components.push(new ActiveMenuRelayout(this._talloc));
@@ -152,7 +152,7 @@ class Extension {
     this._components.reverse().forEach(e => e.disable());
     this._components = null;
 
-    this._activator = null;
+    this._acounter = null;
 
     this._unredirect.setDisabled(false);
     this._unredirect = null;
@@ -497,7 +497,7 @@ class TriggerOnMapped {
   }
 }
 
-class Activator {
+class ActivationCounter {
   constructor() {
     this._count = 0;
   }
@@ -537,7 +537,7 @@ class Activator {
 class Activation {
 
   /**
-   * @param {Activator} counter 
+   * @param {ActivationCounter} counter 
    * @param {string} name 
    */
   constructor(counter, name) {
@@ -994,10 +994,10 @@ class OverviewActivation {
 
   /**
    * @param {any} overview - the overview (Main.overview)
-   * @param {Activator} activator 
+   * @param {ActivationCounter} acounter 
    */
-  constructor(overview, activator) {
-    this._activation = activator.newActivation('Overview');
+  constructor(overview, acounter) {
+    this._activation = acounter.newActivation('Overview');
     this._wires = [
       wire(overview, 'showing', this._onShowing.bind(this)),
       wire(overview, 'hiding', this._onHiding.bind(this))
@@ -1025,11 +1025,11 @@ class StatusAreaActivations {
 
   /**
    * @param {Clutter.Actor} actor - the panel (Main.panel)
-   * @param {Activator} activator 
+   * @param {ActivationCounter} acounter 
    */
-  constructor(actor, activator) {
+  constructor(actor, acounter) {
     this._actor = actor;
-    this._activator = activator;
+    this._acounter = acounter;
 
     /** @type {{ [key: string]: PanelMenuActivation }} */
     this._activations = {};
@@ -1075,7 +1075,7 @@ class StatusAreaActivations {
     let activation = this._activations[key];
     if (!activation) {
       _log && _log(`Create new activation for key: ${key}`);
-      activation = new PanelMenuActivation(this._activator, key);
+      activation = new PanelMenuActivation(this._acounter, key);
       activation.onDestroy = () => {
         _log && _log(`Destroyed activation for key: ${key}`);
         delete this._activations[key];
@@ -1101,12 +1101,12 @@ class StatusAreaActivations {
 class PanelMenuActivation {
 
   /**
-   * @param {Activator} activator 
+   * @param {ActivationCounter} acounter 
    * @param {string} key 
    */
-  constructor(activator, key) {
-    this._activation = activator.newActivation(`Keyfocus: ${key}`);
-    this._menuActivation = new PopupMenuActivation(activator, key);
+  constructor(acounter, key) {
+    this._activation = acounter.newActivation(`Keyfocus: ${key}`);
+    this._menuActivation = new PopupMenuActivation(acounter, key);
     this._actor = null;
     this._wires = [
       wire(null, 'key-focus-in', this._onKeyFocusIn.bind(this)),
@@ -1149,11 +1149,11 @@ class PanelMenuActivation {
 class PopupMenuActivation {
 
   /**
-   * @param {Activator} activator 
+   * @param {ActivationCounter} acounter 
    * @param {string} key 
    */
-  constructor(activator, key) {
-    this._activation = activator.newActivation(`Menuopen: ${key}`);
+  constructor(acounter, key) {
+    this._activation = acounter.newActivation(`Menuopen: ${key}`);
     this._wires = [
       wire(null, 'open-state-changed', this._onOpenChanged.bind(this)),
       wire(null, 'destroy', this._onDestroy.bind(this))
@@ -1326,11 +1326,11 @@ class KeyFocusTracker {
 
   /**
    * @param {Clutter.Actor} actor 
-   * @param {Activator} activator 
+   * @param {ActivationCounter} acounter 
    */
-  constructor(actor, activator) {
+  constructor(actor, acounter) {
     this._actor = actor;
-    this._activation = activator.newActivation('KeyFocusTracker');
+    this._activation = acounter.newActivation('KeyFocusTracker');
 
     this._keyFocus = null;
     this._modal = false;
@@ -1387,11 +1387,11 @@ class WindowOverlapsActivation {
 
   /**
    * @param {TransformedAllocation} talloc 
-   * @param {Activator} activator 
+   * @param {ActivationCounter} acounter 
    */
-  constructor(talloc, activator) {
+  constructor(talloc, acounter) {
     this._talloc = talloc;
-    this._activation = activator.newActivation('WindowOverlaps');
+    this._activation = acounter.newActivation('WindowOverlaps');
 
     this._windowOverlaps = new WindowOverlaps();
     this._windowOverlaps.onHasOverlapsChanged = this._toggle.bind(this);
