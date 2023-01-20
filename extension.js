@@ -1353,14 +1353,6 @@ class KeyFocusTracker {
     this._modal = false;
   }
 
-  _activate() {
-    this._activation.active = true;
-  }
-
-  _deactivate() {
-    this._activation.active = false;
-  }
-
   /**
    * Need this as notify is emitted also when element is the same.
    */
@@ -1378,11 +1370,7 @@ class KeyFocusTracker {
 
     const keyFocus = this._keyFocus;
     _log && _log(`Key focus changed: ${keyFocus}`);
-    if (keyFocus && this._actor.contains(keyFocus)) {
-      this._activate();
-    } else {
-      this._deactivate();
-    }
+    this._activation.active = keyFocus && this._actor.contains(keyFocus);
   }
 
   _withinModal() {
