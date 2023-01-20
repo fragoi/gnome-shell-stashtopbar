@@ -537,11 +537,11 @@ class Activator {
 class Activation {
 
   /**
-   * @param {Activator} activator 
+   * @param {Activator} counter 
    * @param {string} name 
    */
-  constructor(activator, name) {
-    this.activator = activator;
+  constructor(counter, name) {
+    this.counter = counter;
     this.name = name;
     this._active = false;
   }
@@ -556,10 +556,10 @@ class Activation {
       this._active = value;
       if (value) {
         _log && _log(`Activate: ${this.name}`);
-        this.activator.increase();
+        this.counter.increase();
       } else {
         _log && _log(`Deactivate: ${this.name}`);
-        this.activator.decrease();
+        this.counter.decrease();
       }
     }
   }
@@ -628,31 +628,7 @@ class HoverActivation {
    * @param {Activation} activation 
    */
   constructor(actor, activation) {
-    this._hoverTracker = new HoverTracker(actor);
-    this._hoverTracker.onHoverChanged = () => {
-      activation.active = this._hoverTracker.hover;
-    };
-    this._hoverTracker.preventSafeLeave = () => {
-      return activation.activator.count !== 1;
-    };
-  }
-
-  enable() {
-    this._hoverTracker.enable();
-  }
-
-  disable() {
-    this._hoverTracker.disable();
-  }
-}
-
-class HoverTracker {
-
-  /**
-   * @param {Clutter.Actor} actor 
-   */
-  constructor(actor) {
-    this._hover = false;
+    this._activation = activation;
     this._wires = [
       wire(actor, 'enter-event', this._onEnter.bind(this)),
       /* need to track also motion event because of grabs */
@@ -669,45 +645,28 @@ class HoverTracker {
     this._wires.forEach(e => e.disconnect());
   }
 
-  get hover() {
-    return this._hover;
-  }
-
-  onHoverChanged() { }
-
-  preventSafeLeave() {
-    return false;
-  }
-
-  _setHover(value) {
-    if (this._hover !== value) {
-      this._hover = value;
-      this.onHoverChanged();
-    }
-  }
-
   _onEnter() {
     _log && _log('Enter');
-    this._setHover(true);
+    this._activation.active = true;
   }
 
   _onHover() {
-    this._setHover(true);
+    this._activation.active = true;
   }
 
   _onLeave(actor, event) {
     _log && _log('Leave');
 
-    /* check related actor only when there is no event grab
-     * as we may then not receive another leave event */
-    if (!this.preventSafeLeave()) {
+    /* check related actor only when there is no other activation
+     * as we may not receive another leave event in case of grabs */
+    if (this._activation.counter.count === 1) {
       const related = event.get_related();
       if (related && actor.contains(related)) {
         return;
       }
     }
 
-    this._setHover(false);
+    this._activation.active = false;
   }
 }
 
