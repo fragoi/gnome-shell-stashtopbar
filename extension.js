@@ -49,26 +49,19 @@ function boxToString({ x1, y1, x2, y2 }) {
  * @param factor - the relative factor
  */
 function relativeEdge(boxA, boxB, factor = 0.3) {
-  const { x1: x, y1: y } = boxA;
-  const w = (boxA.x2 - x) || 1;
-  const h = (boxA.y2 - y) || 1;
+  const ox = (boxA.x2 - boxA.x1) * factor;
+  const oy = (boxA.y2 - boxA.y1) * factor;
 
-  /* relative points */
-  const rx1 = (boxB.x1 - x) / w;
-  const ry1 = (boxB.y1 - y) / h;
-  const rx2 = (boxB.x2 - x) / w;
-  const ry2 = (boxB.y2 - y) / h;
+  let edge = 0;
 
-  let edge = Edge.NONE;
-
-  if (ry2 < factor)
+  if (boxB.y2 < boxA.y1 + oy)
     edge |= Edge.TOP;
-  else if (ry1 > 1 - factor)
+  else if (boxB.y1 > boxA.y2 - oy)
     edge |= Edge.BOTTOM;
 
-  if (rx2 < factor)
+  if (boxB.x2 < boxA.x1 + ox)
     edge |= Edge.LEFT;
-  else if (rx1 > 1 - factor)
+  else if (boxB.x1 > boxA.x2 - ox)
     edge |= Edge.RIGHT;
 
   return edge;
