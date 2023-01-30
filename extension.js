@@ -1366,14 +1366,16 @@ class WindowOverlapsActivation {
     this._wire = wire(
       talloc,
       'allocation-changed',
-      this._updateAllocation.bind(this)
+      this._updateBox.bind(this)
     );
   }
 
   enable() {
     this._wire.connect();
     this._windowOverlaps.enable();
-    this._updateAllocation();
+    if (this._talloc.actor.has_allocation()) {
+      this._updateBox();
+    }
     this._toggle();
   }
 
@@ -1387,9 +1389,8 @@ class WindowOverlapsActivation {
     this._activation.active = !this._windowOverlaps.hasOverlaps;
   }
 
-  _updateAllocation() {
-    const actor = this._talloc.actor;
-    const box = actor.get_allocation_box();
+  _updateBox() {
+    const box = this._talloc.actor.get_allocation_box();
     _log && _log(`Set window overlaps box: ${boxToString(box)}`);
     this._windowOverlaps.setBox(box);
   }
