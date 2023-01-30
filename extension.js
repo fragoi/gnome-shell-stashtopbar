@@ -211,7 +211,7 @@ class UIChangeForPanelBox {
     const panelBox = Main.layoutManager.panelBox;
 
     // TODO: make this configurable
-    const trackFullscreen = false;
+    const trackFullscreen = true;
 
     /* untrack and retrack only input region (by default) */
     Main.layoutManager.untrackChrome(panelBox);
