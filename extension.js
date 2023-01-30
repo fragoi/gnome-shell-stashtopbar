@@ -320,33 +320,36 @@ class TransformedAllocation {
    */
   constructor(actor) {
     this._actor = actor;
+    this._allocated = { x1: 0, y1: 0, x2: 0, y2: 0 };
+    this._allocation = { x1: 0, y1: 0, x2: 0, y2: 0 };
     this._translation = { x1: 0, y1: 0, x2: 0, y2: 0 };
     this._visible = true;
-    /* lazily initialized */
-    this.__allocated = null;
-    this.__allocation = null;
 
-    this._wire = wire(actor, 'notify::allocation', () => {
-      this._updateAllocation();
-    });
+    const updateAllocation = this._updateAllocation.bind(this);
+    this._wires = [
+      wire(actor, 'notify::allocation', updateAllocation),
+      wire(actor, 'notify::mapped', updateAllocation),
+    ];
 
-    /* updating the allocation when the actor has no allocation will cause
-     * the allocation to be initialized, not doing it for now */
     if (actor.has_allocation()) {
       this._updateAllocation();
     }
   }
 
   enable() {
-    this._wire.connect();
+    this._wires.forEach(e => e.connect());
 
-    if (this._actor.has_allocation()) {
+    /* This should be done only if the actor has an allocation,
+     * however there are cases where the has_allocation method
+     * returns false but then the signal is not emitted (ex.
+     * lock/unlock screen) so only check if mapped */
+    if (this._actor.is_mapped()) {
       this._updateAllocation();
     }
   }
 
   disable() {
-    this._wire.disconnect();
+    this._wires.forEach(e => e.disconnect());
   }
 
   get actor() {
@@ -393,44 +396,15 @@ class TransformedAllocation {
     }
   }
 
-  get _allocated() {
-    this._ensureAllocation();
-    return this.__allocated;
-  }
-
-  get _allocation() {
-    this._ensureAllocation();
-    return this.__allocation;
-  }
-
   _updateAllocation() {
-    this._ensureAllocation();
     const allocation = this._actor.get_allocation_box();
-    if (setProperties(this.__allocated, allocation)) {
-      if (setProperties(this.__allocation, allocation)) {
+    if (setProperties(this._allocated, allocation)) {
+      if (setProperties(this._allocation, allocation)) {
         this._allocationChanged();
       } else {
         this._transformedChanged();
       }
     }
-  }
-
-  _ensureAllocation() {
-    if (this.__allocated)
-      return;
-
-    const box = this._actor.get_allocation_box();
-    /* we need a double check here because the above call may initialize
-     * the allocation and trigger the connected signal, causing a double
-     * initialization, not a big issue but better to avoid */
-    if (this.__allocated)
-      return;
-
-    const allocated = { x1: 0, y1: 0, x2: 0, y2: 0 };
-    setProperties(allocated, box);
-    this.__allocated = allocated;
-    this.__allocation = { ...allocated };
-    _log && _log(`Allocation initialized: ${boxToString(allocated)}`);
   }
 
   _allocationChanged() {
