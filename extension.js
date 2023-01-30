@@ -670,6 +670,7 @@ class BarrierActivation {
       wire(Main.layoutManager, 'hot-corners-changed', updateBarrier),
 
       wire(talloc, 'allocation-changed', updateBarrier),
+      wire(talloc.actor, 'notify::visible', updateBarrier),
       wire(gsettings, 'changed::barrier-edge', updateBarrier),
 
       wire(
@@ -709,8 +710,8 @@ class BarrierActivation {
   }
 
   _activate() {
-    if (!this._talloc.actor.visible)
-      return;
+    // if (!this._talloc.actor.visible)
+    //   return;
 
     this._activation.active = true;
   }
@@ -766,8 +767,11 @@ class BarrierActivation {
     if (edge === Edge.NONE)
       return;
 
-    /* use same monitor of actor */
     const actor = this._talloc.actor;
+    if (!actor.visible)
+      return;
+
+    /* use same monitor of actor */
     const monitor = Main.layoutManager.findMonitorForActor(actor);
     if (!monitor)
       return;
