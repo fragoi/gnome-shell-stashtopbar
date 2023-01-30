@@ -376,15 +376,6 @@ class TransformedAllocation {
     return this._allocated.y2 + this._translation.y2;
   }
 
-  /**
-   * @param {Partial<Box>} translation - the translation of the original allocation
-   */
-  setTranslation(translation) {
-    if (setProperties(this._translation, translation)) {
-      this._transformedChanged();
-    }
-  }
-
   get visible() {
     return this._visible;
   }
@@ -393,6 +384,15 @@ class TransformedAllocation {
     if (this._visible !== value) {
       this._visible = value;
       this._visibleChanged();
+    }
+  }
+
+  /**
+   * @param {Partial<Box>} translation - the translation of the original allocation
+   */
+  setTranslation(translation) {
+    if (setProperties(this._translation, translation)) {
+      this._transformedChanged();
     }
   }
 
