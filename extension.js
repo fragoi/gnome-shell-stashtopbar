@@ -902,14 +902,15 @@ class PressureBarrier {
     if (this._hit)
       return;
 
-    if (event.time >= this._expire) {
-      this._expire = event.time + this.timeout;
+    if (event.time > this._expire) {
+      this._stime = event.time;
       this._pressure = 0;
     }
+    this._expire = event.time + this.timeout;
     this._pressure += this._eventPressure(event);
     if (this._pressure >= this.threshold) {
       _log && _log(`Barrier trigger, pressure: ${this._pressure}, time: ${(
-        event.time + this.timeout - this._expire
+        event.time - this._stime
       )}`);
       this._hit = true;
       this.onHit();
@@ -941,7 +942,7 @@ class PressureBarrier {
         pressure = along > 1 ? across / along : across;
         break;
     }
-    _log && _log(`Pressure: ${this._pressure}, ` +
+    _log && _log(`Time: ${event.time}, pressure: ${this._pressure}, ` +
       `across: ${across}, along: ${along}, delta: ${pressure}`);
     return pressure;
   }
