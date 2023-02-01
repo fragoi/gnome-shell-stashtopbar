@@ -1,6 +1,7 @@
 interface CurrentExtension {
   imports: {
     animations: typeof import('./animations');
+    chromole: typeof import('./chromole');
     utils: typeof import('./utils');
     wm: typeof import('./wm');
   };

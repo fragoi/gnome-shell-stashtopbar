@@ -1,30 +1,28 @@
 'use strict';
 
-const { Clutter, GObject, Meta, Shell } = imports.gi;
-const Signals = imports.signals;
+const { Clutter, Meta, Shell } = imports.gi;
 const Main = imports.ui.main;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 
-const Animations = Me.imports.animations;
-const { idleAdd, idleRemove, setProperties, wire } = Me.imports.utils;
+const {
+  Mole,
+  CanvasConstraint,
+  Edge,
+  relativeEdge,
+  boxToString
+} = Me.imports.chromole;
+const { wire } = Me.imports.utils;
 const { WindowOverlaps } = Me.imports.wm;
 
 const NAME = 'Stash Top Bar';
 const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
 
-const Edge = {
-  NONE: 0,
-  AUTO: -1,
-  TOP: 1,
-  RIGHT: 2,
-  BOTTOM: 4,
-  LEFT: 8
-};
-
 /**
- * @typedef {{ x1: number, y1: number, x2: number, y2: number }} Box
+ * @typedef { import('./chromole').types.TransformedAllocation } TransformedAllocation
+ * @typedef { import('./chromole').types.ActivationCounter } ActivationCounter
+ * @typedef { import('./chromole').types.Activation } Activation
  */
 
 /**
@@ -36,100 +34,38 @@ function init() {
   return new Extension();
 }
 
-/**
- * @param {Box} box
- */
-function boxToString({ x1, y1, x2, y2 }) {
-  return `[${x1},${y1},${x2},${y2}]`;
-}
-
-/**
- * @param {Box} boxA - the respect to box
- * @param {Box} boxB - the relative to box
- * @param factor - the relative factor
- */
-function relativeEdge(boxA, boxB, factor = 0.3) {
-  const ox = (boxA.x2 - boxA.x1) * factor;
-  const oy = (boxA.y2 - boxA.y1) * factor;
-
-  let edge = 0;
-
-  if (boxB.y2 < boxA.y1 + oy)
-    edge |= Edge.TOP;
-  else if (boxB.y1 > boxA.y2 - oy)
-    edge |= Edge.BOTTOM;
-
-  if (boxB.x2 < boxA.x1 + ox)
-    edge |= Edge.LEFT;
-  else if (boxB.x1 > boxA.x2 - ox)
-    edge |= Edge.RIGHT;
-
-  return edge;
-}
-
 function isStartupCompleted() {
   return Main.actionMode !== Shell.ActionMode.NONE;
 }
 
 class Extension {
   enable() {
-    this._gsettings = ExtensionUtils.getSettings(GSETTINGS_ID);
+    // const actor = new Clutter.Actor({ reactive: true });
+    const actor = Main.layoutManager.panelBox;
+    const gsettings = ExtensionUtils.getSettings(GSETTINGS_ID);
 
-    //    this._actor = new Clutter.Actor({ reactive: true });
-    this._actor = Main.layoutManager.panelBox;
+    const mole = new Mole(actor, gsettings);
+    const hover = mole.counter.newActivation('Hover');
 
-    this._talloc = new TransformedAllocation(this._actor);
+    this._components = [
+      new UIChangeForPanelBox(),
+      new EnsureReactive(actor),
+      new InputRegionTrigger(mole.allocation),
 
-    this._animation = new Animations.Wrapper(this._gsettings, this._talloc);
+      mole,
 
-    this._unredirect = new Unredirect();
+      new HoverActivation(actor, hover),
+      new BarrierActivation(mole.allocation, gsettings, hover),
+      new OverviewActivation(Main.overview, mole.counter),
+      new StatusAreaActivations(Main.panel, mole.counter),
+      // new KeyFocusTracker(actor, mole.counter),
+      new WindowOverlapsActivation(mole.allocation, mole.counter),
 
-    this._activation = new IdleActivation(true);
+      new MessageTrayRelayout(mole.allocation, Main.messageTray),
+      new ActiveMenuRelayout(mole.allocation),
 
-    this._acounter = new ActivationCounter();
-
-    const trigger = () => this._activation.setActive(this._acounter.active);
-
-    this._acounter.onActiveChanged = trigger;
-
-    this._activation.onActiveChanged = () => {
-      if (this._activation.active)
-        this._unredirect.setDisabled(true);
-      this._animation.setActive(this._activation.active);
-    };
-
-    this._animation.onCompleted = () => {
-      if (!this._activation.active)
-        this._unredirect.setDisabled(false);
-    };
-
-    this._components = [];
-
-    if (this._actor !== Main.layoutManager.panelBox) {
-      this._components.push(new UIChangeForActor(this._actor));
-    } else {
-      this._components.push(new UIChangeForPanelBox());
-    }
-
-    this._components.push(new EnsureReactive(this._actor));
-    this._components.push(new InputRegionTrigger(this._talloc));
-
-    this._components.push(this._talloc);
-    this._components.push(this._animation);
-    this._components.push(this._activation);
-
-    const hover = this._acounter.newActivation('Hover');
-    this._components.push(new HoverActivation(this._actor, hover));
-    this._components.push(new BarrierActivation(this._talloc, this._gsettings, hover));
-    this._components.push(new OverviewActivation(Main.overview, this._acounter));
-    this._components.push(new StatusAreaActivations(Main.panel, this._acounter));
-    // this._components.push(new KeyFocusTracker(this._actor, this._activator));
-    this._components.push(new WindowOverlapsActivation(this._talloc, this._acounter));
-
-    this._components.push(new MessageTrayRelayout(this._talloc, Main.messageTray));
-    this._components.push(new ActiveMenuRelayout(this._talloc));
-
-    this._components.push(new TriggerOnMapped(this._actor, trigger));
+      new TriggerOnMapped(actor, () => mole.sync()),
+    ];
 
     /* up to here no changes have been made to any actor and no signals
      * have been connected (otherwise, it is a bug).
@@ -144,21 +80,6 @@ class Extension {
   disable() {
     this._components.reverse().forEach(e => e.disable());
     this._components = null;
-
-    this._acounter = null;
-
-    this._unredirect.setDisabled(false);
-    this._unredirect = null;
-
-    this._animation = null;
-    this._talloc = null;
-
-    if (this._actor !== Main.layoutManager.panelBox) {
-      this._actor.destroy();
-    }
-    this._actor = null;
-
-    this._gsettings = null;
 
     delete Main.stashTopBar;
     log(`${NAME} disabled`);
@@ -313,119 +234,6 @@ class InputRegionTrigger {
   }
 }
 
-class TransformedAllocation {
-
-  /**
-   * @param {Clutter.Actor} actor 
-   */
-  constructor(actor) {
-    this._actor = actor;
-    this._allocated = { x1: 0, y1: 0, x2: 0, y2: 0 };
-    this._allocation = { x1: 0, y1: 0, x2: 0, y2: 0 };
-    this._translation = { x1: 0, y1: 0, x2: 0, y2: 0 };
-    this._visible = true;
-
-    const updateAllocation = this._updateAllocation.bind(this);
-    this._wires = [
-      wire(actor, 'notify::allocation', updateAllocation),
-      wire(actor, 'notify::mapped', updateAllocation),
-    ];
-
-    if (actor.has_allocation()) {
-      this._updateAllocation();
-    }
-  }
-
-  enable() {
-    this._wires.forEach(e => e.connect());
-
-    /* This should be done only if the actor has an allocation,
-     * however there are cases where the has_allocation method
-     * returns false but then the signal is not emitted (ex.
-     * lock/unlock screen) so only check if mapped */
-    if (this._actor.is_mapped()) {
-      this._updateAllocation();
-    }
-  }
-
-  disable() {
-    this._wires.forEach(e => e.disconnect());
-  }
-
-  get actor() {
-    return this._actor;
-  }
-
-  get allocation() {
-    return this._allocation;
-  }
-
-  get x1() {
-    return this._allocated.x1 + this._translation.x1;
-  }
-
-  get y1() {
-    return this._allocated.y1 + this._translation.y1;
-  }
-
-  get x2() {
-    return this._allocated.x2 + this._translation.x2;
-  }
-
-  get y2() {
-    return this._allocated.y2 + this._translation.y2;
-  }
-
-  get visible() {
-    return this._visible;
-  }
-
-  set visible(value) {
-    if (this._visible !== value) {
-      this._visible = value;
-      this._visibleChanged();
-    }
-  }
-
-  /**
-   * @param {Partial<Box>} translation - the translation of the original allocation
-   */
-  setTranslation(translation) {
-    if (setProperties(this._translation, translation)) {
-      this._transformedChanged();
-    }
-  }
-
-  _updateAllocation() {
-    const allocation = this._actor.get_allocation_box();
-    if (setProperties(this._allocated, allocation)) {
-      if (setProperties(this._allocation, allocation)) {
-        this._allocationChanged();
-      } else {
-        this._transformedChanged();
-      }
-    }
-  }
-
-  _allocationChanged() {
-    _log && _log(`Allocation changed: ${boxToString(this.allocation)}`);
-    this.emit('allocation-changed');
-  }
-
-  _transformedChanged() {
-    _log && _log(`Transformed changed: ${boxToString(this)}`);
-    this.emit('transformed-changed');
-  }
-
-  _visibleChanged() {
-    _log && _log(`Visible changed: ${this.visible}`);
-    this.emit('visible-changed');
-  }
-}
-Signals.addSignalMethods(TransformedAllocation.prototype);
-/** @type {(s: string, ...args: any[]) => void} */
-TransformedAllocation.prototype.emit;
-
 class TriggerOnMapped {
 
   /**
@@ -461,130 +269,6 @@ class TriggerOnMapped {
       this._wire.disconnect();
       this._trigger();
     }
-  }
-}
-
-class ActivationCounter {
-  constructor() {
-    this._count = 0;
-  }
-
-  get active() {
-    return !!this._count;
-  }
-
-  onActiveChanged() { }
-
-  /**
-   * @param {string} name 
-   */
-  newActivation(name) {
-    return new Activation(this, name);
-  }
-
-  get count() {
-    return this._count;
-  }
-
-  increase() {
-    this._count++;
-    if (this._count === 1) {
-      this.onActiveChanged();
-    }
-  }
-
-  decrease() {
-    this._count--;
-    if (this._count === 0) {
-      this.onActiveChanged();
-    }
-  }
-}
-
-class Activation {
-
-  /**
-   * @param {ActivationCounter} counter 
-   * @param {string} name 
-   */
-  constructor(counter, name) {
-    this.counter = counter;
-    this.name = name;
-    this._active = false;
-  }
-
-  get active() {
-    return this._active;
-  }
-
-  set active(value) {
-    value = !!value;
-    if (this._active !== value) {
-      this._active = value;
-      if (value) {
-        _log && _log(`Activate: ${this.name}`);
-        this.counter.increase();
-      } else {
-        _log && _log(`Deactivate: ${this.name}`);
-        this.counter.decrease();
-      }
-    }
-  }
-}
-
-class IdleActivation {
-  constructor(active = false) {
-    this._active = active;
-    this._wanted = active;
-    this._idleId = 0;
-  }
-
-  enable() { }
-
-  disable() {
-    this._idleRemove();
-  }
-
-  get active() {
-    return this._active;
-  }
-
-  onActiveChanged() { }
-
-  setActive(value) {
-    if (this._wanted !== value) {
-      this._wanted = value;
-      this._idleAdd();
-    }
-  }
-
-  _setActive(value) {
-    if (this._active !== value) {
-      this._active = value;
-      _log && _log(`Active changed: ${value}`);
-      this.onActiveChanged();
-    }
-  }
-
-  _idleAdd() {
-    if (this._idleId)
-      return;
-
-    _log && _log('Idle add');
-    this._idleId = idleAdd(this._onIdle.bind(this));
-  }
-
-  _idleRemove() {
-    if (!this._idleId)
-      return;
-
-    idleRemove(this._idleId);
-    this._idleId = 0;
-  }
-
-  _onIdle() {
-    this._idleId = 0;
-    this._setActive(this._wanted);
   }
 }
 
@@ -1204,95 +888,6 @@ class MessageTrayRelayout {
   }
 }
 
-const CanvasConstraint = GObject.registerClass(
-  class CanvasConstraint extends (Clutter.Constraint) {
-
-    /**
-     * @param {TransformedAllocation} talloc 
-     */
-    _init(talloc) {
-      super._init();
-      this._talloc = talloc;
-      this._wire = wire(
-        talloc,
-        'transformed-changed',
-        this._queueRelayout.bind(this)
-      );
-    }
-
-    vfunc_set_actor(actor) {
-      if (actor) {
-        this._wire.connect();
-      } else {
-        this._wire.disconnect();
-      }
-      super.vfunc_set_actor(actor);
-    }
-
-    vfunc_update_allocation(_actor, allocation) {
-      /* maybe I should check the actors have the same parent,
-       * as allocation is relative to the parent, however it may be
-       * they have different parents but still valid relative allocations,
-       * only time will tell */
-
-      const edge = relativeEdge(allocation, this._talloc);
-      switch (edge) {
-        case Edge.TOP:
-          allocation.y1 = Math.max(allocation.y1, Math.ceil(this._talloc.y2));
-          break;
-        case Edge.BOTTOM:
-          allocation.y2 = Math.min(allocation.y2, Math.floor(this._talloc.y1));
-          break;
-        case Edge.LEFT:
-          allocation.x1 = Math.max(allocation.x1, Math.ceil(this._talloc.x2));
-          break;
-        case Edge.RIGHT:
-          allocation.x2 = Math.min(allocation.x2, Math.floor(this._talloc.x1));
-          break;
-      }
-
-      _log && _log(`Constraint updated allocation: ${boxToString(allocation)}`);
-    }
-
-    _queueRelayout() {
-      const actor = this.get_actor();
-      actor && actor.queue_relayout();
-    }
-  }
-);
-
-/**
- * Disable/enable unredirect for display.
- *
- * On X sessions some applications (most notably media players, for ex VLC) after going
- * fullscreen for a while, when leaving fullscreen and their window geometry is the same
- * of the screen (so when they are maximized) they not allow elements to be painted on
- * top of the window, causing the panel to be invisible (still usable however if clicking
- * on reactive elements).
- * Disabling unredirect fix this.
- */
-class Unredirect {
-  constructor() {
-    this._disabled = false;
-  }
-
-  /**
-   * @param {boolean} value 
-   */
-  setDisabled(value) {
-    if (this._disabled === value)
-      return;
-
-    if (value) {
-      Meta.disable_unredirect_for_display(global.display);
-    } else {
-      Meta.enable_unredirect_for_display(global.display);
-    }
-
-    this._disabled = value;
-  }
-}
-
 class KeyFocusTracker {
 
   /**
@@ -1400,14 +995,9 @@ class WindowOverlapsActivation {
   }
 }
 
-var internal = {
-  TransformedAllocation
-};
-
 if (typeof module === 'object') {
   module.exports = {
     __esModule: true,
-    init,
-    internal
+    init
   };
 }
