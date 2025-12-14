@@ -61,6 +61,31 @@ function relativeEdge(boxA, boxB, factor = 0.3) {
   return edge;
 }
 
+/**
+ * Transforms `boxA` removing the space used by `boxB`.
+ * If boxes do not overlap `boxA` is not modified.
+ * 
+ * @param {Box} boxA - the box to reduce
+ * @param {Box} boxB - space to remove
+ */
+function reduceBox(boxA, boxB) {
+  const edge = relativeEdge(boxA, boxB);
+  switch (edge) {
+    case Edge.TOP:
+      boxA.y1 = Math.max(boxA.y1, Math.ceil(boxB.y2));
+      break;
+    case Edge.BOTTOM:
+      boxA.y2 = Math.min(boxA.y2, Math.floor(boxB.y1));
+      break;
+    case Edge.LEFT:
+      boxA.x1 = Math.max(boxA.x1, Math.ceil(boxB.x2));
+      break;
+    case Edge.RIGHT:
+      boxA.x2 = Math.min(boxA.x2, Math.floor(boxB.x1));
+      break;
+  }
+}
+
 var Mole = class {
 
   /**
@@ -418,23 +443,7 @@ var CanvasConstraint = GObject.registerClass(
        * as allocation is relative to the parent, however it may be
        * they have different parents but still valid relative allocations,
        * only time will tell */
-
-      const edge = relativeEdge(allocation, this._talloc);
-      switch (edge) {
-        case Edge.TOP:
-          allocation.y1 = Math.max(allocation.y1, Math.ceil(this._talloc.y2));
-          break;
-        case Edge.BOTTOM:
-          allocation.y2 = Math.min(allocation.y2, Math.floor(this._talloc.y1));
-          break;
-        case Edge.LEFT:
-          allocation.x1 = Math.max(allocation.x1, Math.ceil(this._talloc.x2));
-          break;
-        case Edge.RIGHT:
-          allocation.x2 = Math.min(allocation.x2, Math.floor(this._talloc.x1));
-          break;
-      }
-
+      reduceBox(allocation, this._talloc);
       _log && _log(`Constraint updated allocation: ${boxToString(allocation)}`);
     }
 
