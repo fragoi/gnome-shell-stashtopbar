@@ -2,13 +2,15 @@
 
 const { Clutter, Meta, Shell } = imports.gi;
 const Main = imports.ui.main;
+const Config = imports.misc.config;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 
 const {
   Mole,
-  CanvasConstraint,
+  TransformedCanvasConstraint,
+  AllocationCanvasConstraint,
   Edge,
   relativeEdge,
   boxToString
@@ -43,6 +45,7 @@ class Extension {
     // const actor = new Clutter.Actor({ reactive: true });
     const actor = Main.layoutManager.panelBox;
     const gsettings = ExtensionUtils.getSettings(GSETTINGS_ID);
+    const [shellVersion] = Config.PACKAGE_VERSION.split('.');
 
     const mole = new Mole(actor, gsettings);
     const hover = mole.counter.newActivation('Hover');
@@ -61,15 +64,30 @@ class Extension {
       // new KeyFocusTracker(actor, mole.counter),
       new WindowOverlapsActivation(mole.allocation, mole.counter),
 
-      new MessageTrayRelayout(mole.allocation, Main.messageTray),
+      new ActorConstraint(
+        Main.messageTray,
+        new TransformedCanvasConstraint(mole.allocation)
+      ),
       new ActiveMenuRelayout(mole.allocation),
 
       new TriggerOnMapped(actor, () => mole.sync()),
     ];
 
+    if (shellVersion >= 40) {
+      /* leave space for the panel in the overview */
+      this._components.push(
+        new ActorConstraint(
+          Main.overview._overview,
+          new AllocationCanvasConstraint(mole.allocation)
+        )
+      );
+    }
+
     /* up to here no changes have been made to any actor and no signals
      * have been connected (otherwise, it is a bug).
      * Now start applying changes... */
+
+    _log && _log(`${NAME} enabling...`);
 
     this._components.forEach(e => e.enable());
 
@@ -78,6 +96,8 @@ class Extension {
   }
 
   disable() {
+    _log && _log(`${NAME} disabling...`);
+
     this._components.reverse().forEach(e => e.disable());
     this._components = null;
 
@@ -858,33 +878,33 @@ class ActiveMenuRelayout {
   }
 }
 
-class MessageTrayRelayout {
+class ActorConstraint {
 
   /**
-   * @param {TransformedAllocation} talloc 
-   * @param {Clutter.Actor} messageTray 
+   * @param {Clutter.Actor} actor 
+   * @param {Clutter.Constraint} constraint
    */
-  constructor(talloc, messageTray) {
-    this._messageTray = messageTray;
-    this._constraint = new CanvasConstraint(talloc);
+  constructor(actor, constraint) {
+    this._actor = actor;
+    this._constraint = constraint;
   }
 
   enable() {
     if (this._enabled())
       return;
 
-    this._messageTray.add_constraint(this._constraint);
+    this._actor.add_constraint(this._constraint);
   }
 
   disable() {
     if (!this._enabled())
       return;
 
-    this._messageTray.remove_constraint(this._constraint);
+    this._actor.remove_constraint(this._constraint);
   }
 
   _enabled() {
-    return this._messageTray.get_constraints().includes(this._constraint);
+    return this._actor.get_constraints().includes(this._constraint);
   }
 }
 

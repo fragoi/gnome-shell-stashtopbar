@@ -52,6 +52,7 @@ declare namespace Clutter {
   interface Actor {
     [any: string]: any;
   }
+  type Constraint = any;
 }
 
 declare namespace Gio {

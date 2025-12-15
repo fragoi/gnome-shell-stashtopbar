@@ -413,8 +413,8 @@ class Unredirect {
   }
 }
 
-var CanvasConstraint = GObject.registerClass(
-  class CanvasConstraint extends (Clutter.Constraint) {
+var TransformedCanvasConstraint = GObject.registerClass(
+  class TransformedCanvasConstraint extends (Clutter.Constraint) {
 
     /**
      * @param {TransformedAllocation} talloc 
@@ -444,7 +444,56 @@ var CanvasConstraint = GObject.registerClass(
        * they have different parents but still valid relative allocations,
        * only time will tell */
       reduceBox(allocation, this._talloc);
-      _log && _log(`Constraint updated allocation: ${boxToString(allocation)}`);
+      _log && _log(`TransformedCanvasConstraint updated allocation: ${boxToString(allocation)}`);
+    }
+
+    _queueRelayout() {
+      const actor = this.get_actor();
+      actor && actor.queue_relayout();
+    }
+  }
+);
+
+var AllocationCanvasConstraint = GObject.registerClass(
+  class AllocationCanvasConstraint extends (Clutter.Constraint) {
+
+    /**
+     * @param {TransformedAllocation} talloc 
+     */
+    _init(talloc) {
+      super._init();
+      this._talloc = talloc;
+      this._box = { x1: 0, y1: 0, x2: 0, y2: 0 };
+      this._wire = wire(
+        talloc,
+        'allocation-changed',
+        this._allocationChanged.bind(this)
+      );
+    }
+
+    vfunc_set_actor(actor) {
+      if (actor) {
+        this._wire.connect();
+        this._updateBox();
+      } else {
+        this._wire.disconnect();
+      }
+      super.vfunc_set_actor(actor);
+    }
+
+    vfunc_update_allocation(_actor, allocation) {
+      reduceBox(allocation, this._box);
+      _log && _log(`AllocationCanvasConstraint updated allocation: ${boxToString(allocation)}`);
+    }
+
+    _allocationChanged() {
+      this._updateBox();
+      this._queueRelayout();
+    }
+
+    _updateBox() {
+      this._box = { ...this._talloc.allocation };
+      _log && _log(`AllocationCanvasConstraint box: ${boxToString(this._box)}`);
     }
 
     _queueRelayout() {
@@ -467,7 +516,8 @@ if (typeof module === 'object') {
     boxToString,
     relativeEdge,
     Mole,
-    CanvasConstraint,
+    TransformedCanvasConstraint,
+    AllocationCanvasConstraint,
     types
   };
 }
