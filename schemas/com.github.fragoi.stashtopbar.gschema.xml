@@ -30,7 +30,7 @@
     path="/org/gnome/shell/extensions/com-github-fragoi-stashtopbar/">
 
     <key name="animation-type" enum="com.github.fragoi.stashtopbar.AnimationType">
-      <default>'offcanvas'</default>
+      <default>'slide'</default>
       <summary>Animation</summary>
       <description>
         Animation to use when showing/hiding the panel.
