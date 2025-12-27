@@ -42,7 +42,6 @@ function isStartupCompleted() {
 
 class Extension {
   enable() {
-    // const actor = new Clutter.Actor({ reactive: true });
     const actor = Main.layoutManager.panelBox;
     const gsettings = ExtensionUtils.getSettings(GSETTINGS_ID);
     const [shellVersion] = Config.PACKAGE_VERSION.split('.');
@@ -61,6 +60,7 @@ class Extension {
       new BarrierActivation(mole.allocation, gsettings, hover),
       new OverviewActivation(Main.overview, mole.counter),
       new StatusAreaActivations(Main.panel, mole.counter),
+      /* KeyFocusTracker can replace completely StatusAreaActivations  */
       // new KeyFocusTracker(actor, mole.counter),
       new WindowOverlapsActivation(mole.allocation, mole.counter),
 
