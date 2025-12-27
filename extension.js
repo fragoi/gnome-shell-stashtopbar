@@ -60,7 +60,7 @@ class Extension {
       new BarrierActivation(mole.allocation, gsettings, hover),
       new OverviewActivation(Main.overview, mole.counter),
       new StatusAreaActivations(Main.panel, mole.counter),
-      /* KeyFocusTracker can replace completely StatusAreaActivations  */
+      /* KeyFocusTracker can replace completely StatusAreaActivations */
       // new KeyFocusTracker(actor, mole.counter),
       new WindowOverlapsActivation(mole.allocation, mole.counter),
 
