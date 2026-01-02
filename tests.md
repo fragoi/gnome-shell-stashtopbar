@@ -40,7 +40,7 @@ Issues that exist in the shell but are less evident without this extension.
   to unstuck the only way so far is to press `esc` followed by `ctrl + alt + tab`.
   When the menu was opened after focusing with `ctrl + alt + tab`,
   the navigation does not get stuck.
-* keyfocus (shell >= 42): when focusing panel with `ctrl + alt + tab`,
+* keyfocus (shell >= 42, x11 only): when focusing panel with `ctrl + alt + tab`,
   the panel is visually focused but there is no keyboard focus,
   so keyboard navigation does not work, neither pressing `esc`.
   To unfocus click elsewhere with mouse, or use `ctrl + alt + tab`.
