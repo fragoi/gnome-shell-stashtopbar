@@ -5,8 +5,8 @@
 * barrier: (not on VM) panel shows when pointer hits with force the top of the monitor,
   should not show when weakly touching it or sliding over it
 * hot corner: (not on VM) hot corner works and shows/hide overview
-* hover: panel visible when pointer is over it
 * overview: panel visible when in overview
+* hover: panel visible when pointer is over it
 * key focus: `ctrl + alt + tab` should focus the panel,
   keyboard navigation should not close the panel, also on menus
 * status area:
