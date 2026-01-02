@@ -16,7 +16,8 @@
     `esc` to leave
   * menu open: when menu is open panel should be visible
   * actor added: when an item is added to the panel should have same behavior above,
-    try enable `apps-menu@gnome-shell-extensions.gcampax.github.com`
+    try enable `apps-menu@gnome-shell-extensions.gcampax.github.com`,
+    or use `testmenu@fragoi.github.com`
 * windows: when a window overlaps the panel it should hide,
   try also to switch workspace
 
