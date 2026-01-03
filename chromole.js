@@ -144,7 +144,7 @@ export class Mole {
   }
 }
 
-class TransformedAllocation {
+export class TransformedAllocation {
 
   /**
    * @param {Clutter.Actor} actor 
@@ -257,7 +257,7 @@ Signals.addSignalMethods(TransformedAllocation.prototype);
 /** @type {(s: string, ...args: any[]) => void} */
 TransformedAllocation.prototype.emit;
 
-class ActivationCounter {
+export class ActivationCounter {
   constructor() {
     this._count = 0;
   }
@@ -294,7 +294,7 @@ class ActivationCounter {
   }
 }
 
-class Activation {
+export class Activation {
 
   /**
    * @param {ActivationCounter} counter 
@@ -502,9 +502,3 @@ export const AllocationCanvasConstraint = GObject.registerClass(
     }
   }
 );
-
-export const types = {
-  TransformedAllocation,
-  ActivationCounter,
-  Activation
-};

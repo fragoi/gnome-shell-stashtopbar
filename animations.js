@@ -56,7 +56,7 @@ const AnimationType = {
 };
 
 /**
- * @typedef {typeof import('./chromole').Mole.prototype.allocation} TransformedAllocation
+ * @import { TransformedAllocation } from './chromole'
  * 
  * @typedef Animation
  * @property {() => void} enable

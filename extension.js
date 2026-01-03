@@ -23,9 +23,7 @@ const NAME = 'Stash Top Bar';
 const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
 
 /**
- * @typedef { typeof Mole.prototype.allocation } TransformedAllocation
- * @typedef { typeof Mole.prototype.counter } ActivationCounter
- * @typedef { ReturnType<typeof Mole.prototype.counter.newActivation> } Activation
+ * @import { TransformedAllocation, ActivationCounter, Activation } from './chromole'
  */
 
 /**
