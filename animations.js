@@ -41,13 +41,11 @@
  *   wanted to change the allocation (should never be wanted though)
  */
 
-const { Clutter } = imports.gi;
-const Main = imports.ui.main;
+import Clutter from 'gi://Clutter';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-const { wire } = Me.imports.utils;
+import { wire } from './utils.js';
 
 const AnimationType = {
   NONE: 0,
@@ -58,7 +56,7 @@ const AnimationType = {
 };
 
 /**
- * @typedef {import('./chromole').types.TransformedAllocation} TransformedAllocation
+ * @typedef {typeof import('./chromole').Mole.prototype.allocation} TransformedAllocation
  * 
  * @typedef Animation
  * @property {() => void} enable
@@ -104,7 +102,7 @@ function uneased(handler) {
  * 
  * @implements {Animation}
  */
-var Wrapper = class {
+export class Wrapper {
 
   /**
    * @param {Gio.Settings} gsettings - the settings
@@ -749,11 +747,4 @@ class Slide {
     const translationY = this._actor.translation_y;
     this._talloc.setTranslation({ y1: translationY, y2: translationY });
   }
-}
-
-if (typeof module === 'object') {
-  module.exports = {
-    __esModule: true,
-    Wrapper
-  };
 }

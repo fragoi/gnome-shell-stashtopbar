@@ -1,30 +1,31 @@
 'use strict';
 
-const { Clutter, Meta, Shell } = imports.gi;
-const Main = imports.ui.main;
-const Config = imports.misc.config;
+import Clutter from 'gi://Clutter';
+import Meta from 'gi://Meta';
+import Shell from 'gi://Shell';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as Config from 'resource:///org/gnome/shell/misc/config.js';
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const {
+import {
   Mole,
   TransformedCanvasConstraint,
   AllocationCanvasConstraint,
   Edge,
   relativeEdge,
   boxToString
-} = Me.imports.chromole;
-const { wire } = Me.imports.utils;
-const { WindowOverlaps } = Me.imports.wm;
+} from './chromole.js';
+import { wire } from './utils.js';
+import { WindowOverlaps } from './wm.js';
 
 const NAME = 'Stash Top Bar';
 const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
 
 /**
- * @typedef { import('./chromole').types.TransformedAllocation } TransformedAllocation
- * @typedef { import('./chromole').types.ActivationCounter } ActivationCounter
- * @typedef { import('./chromole').types.Activation } Activation
+ * @typedef { typeof Mole.prototype.allocation } TransformedAllocation
+ * @typedef { typeof Mole.prototype.counter } ActivationCounter
+ * @typedef { ReturnType<typeof Mole.prototype.counter.newActivation> } Activation
  */
 
 /**
@@ -32,18 +33,14 @@ const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
  */
 var _log;
 
-function init() {
-  return new Extension();
-}
-
 function isStartupCompleted() {
   return Main.actionMode !== Shell.ActionMode.NONE;
 }
 
-class Extension {
+export default class MyExtension extends Extension {
   enable() {
     const actor = Main.layoutManager.panelBox;
-    const gsettings = ExtensionUtils.getSettings(GSETTINGS_ID);
+    const gsettings = this.getSettings(GSETTINGS_ID);
     const [shellVersion] = Config.PACKAGE_VERSION.split('.');
 
     const mole = new Mole(actor, gsettings);
@@ -91,7 +88,6 @@ class Extension {
 
     this._components.forEach(e => e.enable());
 
-    Main.stashTopBar = this;
     log(`${NAME} enabled`);
   }
 
@@ -101,7 +97,6 @@ class Extension {
     this._components.reverse().forEach(e => e.disable());
     this._components = null;
 
-    delete Main.stashTopBar;
     log(`${NAME} disabled`);
   }
 }
@@ -1013,11 +1008,4 @@ class WindowOverlapsActivation {
     _log && _log(`Set window overlaps box: ${boxToString(box)}`);
     this._windowOverlaps.setBox(box);
   }
-}
-
-if (typeof module === 'object') {
-  module.exports = {
-    __esModule: true,
-    init
-  };
 }

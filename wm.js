@@ -1,18 +1,15 @@
 'use strict';
 
-const { Meta } = imports.gi;
+import Meta from 'gi://Meta';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-
-const { setProperties, wire } = Me.imports.utils;
+import { setProperties, wire } from './utils.js';
 
 /**
  * @type {(msg: string) => void}
  */
 var _log;
 
-var WindowOverlaps = class {
+export class WindowOverlaps {
   constructor() {
     this._symbol = Symbol('WindowOverlaps');
     this._box = { x1: 0, y1: 0, x2: 0, y2: 0 };
@@ -137,11 +134,4 @@ var WindowOverlaps = class {
     return this._box.x1 < x + width && x < this._box.x2 &&
       this._box.y1 < y + height && y < this._box.y2;
   }
-}
-
-if (typeof module === 'object') {
-  module.exports = {
-    __esModule: true,
-    WindowOverlaps
-  };
 }

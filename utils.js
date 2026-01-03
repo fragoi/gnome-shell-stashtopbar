@@ -1,19 +1,19 @@
 'use strict';
 
-const { GLib } = imports.gi;
+import GLib from 'gi://GLib';
 
 /**
  * @param {Function} callback - the callback to execute when idle
  * @returns {number} the ID of the idle source
  */
-function idleAdd(callback) {
+export function idleAdd(callback) {
   return GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, callback);
 }
 
 /**
  * @param {number} id - the ID of the idle source
  */
-function idleRemove(id) {
+export function idleRemove(id) {
   GLib.Source.remove(id);
 }
 
@@ -22,7 +22,7 @@ function idleRemove(id) {
  * @param {any} values - the object with properties to set
  * @returns if any property is changed
  */
-function setProperties(object, values) {
+export function setProperties(object, values) {
   let changed = false;
   for (const p in object) {
     if (p in values && object[p] !== values[p]) {
@@ -39,7 +39,7 @@ function setProperties(object, values) {
  * @param {Function} handler - the handler to connect
  * @returns {Wire} a new wire
  */
-function wire(target, signal, handler) {
+export function wire(target, signal, handler) {
   return new Wire(target, signal, handler);
 }
 
@@ -74,14 +74,4 @@ class Wire {
     this._target = target;
     return this;
   }
-}
-
-if (typeof module === 'object') {
-  module.exports = {
-    __esModule: true,
-    idleAdd,
-    idleRemove,
-    setProperties,
-    wire
-  };
 }

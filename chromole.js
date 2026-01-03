@@ -1,13 +1,13 @@
 'use strict';
 
-const { Clutter, GObject, Meta } = imports.gi;
+import Clutter from 'gi://Clutter';
+import GObject from 'gi://GObject';
+import Meta from 'gi://Meta';
+
+import * as Animations from './animations.js';
+import { idleAdd, idleRemove, setProperties, wire } from './utils.js';
+
 const Signals = imports.signals;
-
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-
-const Animations = Me.imports.animations;
-const { idleAdd, idleRemove, setProperties, wire } = Me.imports.utils;
 
 /**
  * @typedef {{ x1: number, y1: number, x2: number, y2: number }} Box
@@ -16,7 +16,7 @@ const { idleAdd, idleRemove, setProperties, wire } = Me.imports.utils;
 /**
  * @enum {number}
  */
-var Edge = {
+export const Edge = {
   NONE: 0,
   AUTO: -1,
   TOP: 1,
@@ -33,7 +33,7 @@ var _log;
 /**
  * @param {Box} box
  */
-function boxToString({ x1, y1, x2, y2 }) {
+export function boxToString({ x1, y1, x2, y2 }) {
   return `[${x1},${y1},${x2},${y2}]`;
 }
 
@@ -42,7 +42,7 @@ function boxToString({ x1, y1, x2, y2 }) {
  * @param {Box} boxB - the relative to box
  * @param factor - the relative factor
  */
-function relativeEdge(boxA, boxB, factor = 0.3) {
+export function relativeEdge(boxA, boxB, factor = 0.3) {
   const ox = (boxA.x2 - boxA.x1) * factor;
   const oy = (boxA.y2 - boxA.y1) * factor;
 
@@ -86,7 +86,7 @@ function reduceBox(boxA, boxB) {
   }
 }
 
-var Mole = class {
+export class Mole {
 
   /**
    * @param {Clutter.Actor} actor 
@@ -413,7 +413,7 @@ class Unredirect {
   }
 }
 
-var TransformedCanvasConstraint = GObject.registerClass(
+export const TransformedCanvasConstraint = GObject.registerClass(
   class TransformedCanvasConstraint extends (Clutter.Constraint) {
 
     /**
@@ -454,7 +454,7 @@ var TransformedCanvasConstraint = GObject.registerClass(
   }
 );
 
-var AllocationCanvasConstraint = GObject.registerClass(
+export const AllocationCanvasConstraint = GObject.registerClass(
   class AllocationCanvasConstraint extends (Clutter.Constraint) {
 
     /**
@@ -503,21 +503,8 @@ var AllocationCanvasConstraint = GObject.registerClass(
   }
 );
 
-var types = {
+export const types = {
   TransformedAllocation,
   ActivationCounter,
   Activation
 };
-
-if (typeof module === 'object') {
-  module.exports = {
-    __esModule: true,
-    Edge,
-    boxToString,
-    relativeEdge,
-    Mole,
-    TransformedCanvasConstraint,
-    AllocationCanvasConstraint,
-    types
-  };
-}
