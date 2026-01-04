@@ -1,0 +1,51 @@
+name: Create release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - .github/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GIT_USER_NAME: Fra Bot
+  GIT_USER_EMAIL: fragoibot@gmail.com
+
+jobs:
+
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.exportVersion.outputs.NEW_VERSION }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: fragoi/bash-actions@main
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          createRelease
+      - name: Export version
+        id: exportVersion
+        run: |
+          outputSharedVars NEW_VERSION
+
+  # notify-deb:
+  #   needs: [release]
+  #   runs-on: ubuntu-latest
+  #   continue-on-error: true
+  #   if: ${{ needs.release.outputs.new_version }}
+  #   steps:
+  #     - uses: fragoi/bash-actions@main
+  #     - name: Notify debian repository
+  #       env:
+  #         NEW_VERSION: ${{ needs.release.outputs.new_version }}
+  #         GITHUB_TOKEN: ${{ secrets.DEB_TOKEN }}
+  #       run: |
+  #         repositoryDispatch fragoi/gnome-shell-stashtopbar-deb \
+  #           -f event_type=new_upstream_version \
+  #           -f client_payload[upstream_version]="$NEW_VERSION"
