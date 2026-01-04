@@ -22,7 +22,7 @@ jobs:
     outputs:
       new_version: ${{ steps.exportVersion.outputs.NEW_VERSION }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
       - uses: fragoi/bash-actions@main
       - name: Create release
         env:
