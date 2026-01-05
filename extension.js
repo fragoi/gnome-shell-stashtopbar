@@ -17,6 +17,7 @@ import {
 } from './chromole.js';
 import { wire } from './utils.js';
 import { WindowOverlaps } from './wm.js';
+import { CHILD_ADDED, CHILD_REMOVED } from './compat.js';
 
 const NAME = 'Stash Top Bar';
 const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
@@ -698,8 +699,8 @@ class StatusAreaActivations {
     // I whish there was a better way
     const updateStatusArea = this._updateStatusArea.bind(this);
     for (const child of actor.get_children()) {
-      this._wires.push(wire(child, 'actor-added', updateStatusArea));
-      this._wires.push(wire(child, 'actor-removed', updateStatusArea));
+      this._wires.push(wire(child, CHILD_ADDED, updateStatusArea));
+      this._wires.push(wire(child, CHILD_REMOVED, updateStatusArea));
     }
   }
 

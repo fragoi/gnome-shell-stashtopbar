@@ -3,6 +3,7 @@
 import Meta from 'gi://Meta';
 
 import { setProperties, wire } from './utils.js';
+import { CHILD_ADDED } from './compat.js';
 
 /**
  * @type {(msg: string) => void}
@@ -16,7 +17,7 @@ export class WindowOverlaps {
     this._overlaps = 0;
 
     this._wires = [
-      wire(global.window_group, 'actor-added', (_s, a) => this._trackActor(a))
+      wire(global.window_group, CHILD_ADDED, (_s, a) => this._trackActor(a))
     ];
   }
 
