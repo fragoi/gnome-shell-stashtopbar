@@ -3,6 +3,6 @@
   "description": "Stash Top Bar",
   "uuid": "stashtopbar@fragoi.github.com",
   "shell-version": [
-    "45", "46"
+    "45", "46", "47"
   ]
 }
