@@ -5,7 +5,6 @@ import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import * as Config from 'resource:///org/gnome/shell/misc/config.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import {
@@ -39,7 +38,6 @@ export default class MyExtension extends Extension {
   enable() {
     const actor = Main.layoutManager.panelBox;
     const gsettings = this.getSettings(GSETTINGS_ID);
-    const [shellVersion] = Config.PACKAGE_VERSION.split('.');
 
     const mole = new Mole(actor, gsettings);
     const hover = mole.counter.newActivation('Hover');
@@ -63,20 +61,14 @@ export default class MyExtension extends Extension {
         Main.messageTray,
         new TransformedCanvasConstraint(mole.allocation)
       ),
+      new ActorConstraint(
+        Main.overview._overview,
+        new AllocationCanvasConstraint(mole.allocation)
+      ),
       new ActiveMenuRelayout(mole.allocation),
 
       new TriggerOnMapped(actor, () => mole.sync()),
     ];
-
-    if (shellVersion >= 40) {
-      /* leave space for the panel in the overview */
-      this._components.push(
-        new ActorConstraint(
-          Main.overview._overview,
-          new AllocationCanvasConstraint(mole.allocation)
-        )
-      );
-    }
 
     /* up to here no changes have been made to any actor and no signals
      * have been connected (otherwise, it is a bug).
