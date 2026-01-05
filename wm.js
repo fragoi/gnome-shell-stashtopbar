@@ -1,9 +1,7 @@
 'use strict';
 
-import Meta from 'gi://Meta';
-
 import { setProperties, wire } from './utils.js';
-import { CHILD_ADDED } from './compat.js';
+import { CHILD_ADDED, get_window_actors } from './compat.js';
 
 /**
  * @type {(msg: string) => void}
@@ -65,7 +63,7 @@ export class WindowOverlaps {
   }
 
   get _windowActors() {
-    return Meta.get_window_actors(global.display);
+    return get_window_actors();
   }
 
   _trackActor(actor) {

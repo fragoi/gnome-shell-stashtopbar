@@ -6,6 +6,7 @@ import Meta from 'gi://Meta';
 
 import * as Animations from './animations.js';
 import { idleAdd, idleRemove, setProperties, wire } from './utils.js';
+import { disable_unredirect, enable_unredirect } from './compat.js';
 
 const Signals = imports.signals;
 
@@ -404,9 +405,9 @@ class Unredirect {
       return;
 
     if (value) {
-      Meta.disable_unredirect_for_display(global.display);
+      disable_unredirect();
     } else {
-      Meta.enable_unredirect_for_display(global.display);
+      enable_unredirect();
     }
 
     this._disabled = value;
