@@ -427,7 +427,7 @@ class BarrierActivation {
     _log && _log(`Creating new barrier with props: ${JSON.stringify(props)}`);
 
     this._barrier = new Meta.Barrier({
-      display: global.display,
+      backend: global.backend,
       ...props
     });
     this._pressureBarrier.setBarrier(this._barrier);
