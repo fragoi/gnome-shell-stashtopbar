@@ -704,7 +704,9 @@ class Slide {
   _toggle() {
     const actor = this._actor;
     const delay = this._active ? 0 : 200;
-    const translationY = this._active ? 0 : -actor.height;
+    /* add 2px to avoid pointer out of screen to enter the actor
+     * this actually happen with firefox on wayland */
+    const translationY = this._active ? 0 : -actor.height - 2;
 
     _log && _log(`Translate Y to value: ${translationY}, ` +
       `current: ${actor.translation_y}, delay: ${delay}`);
