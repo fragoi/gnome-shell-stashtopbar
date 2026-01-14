@@ -32,8 +32,8 @@ declare module 'gi://GObject' {
 
   interface GObject {
     [any: string]: any;
-    registerClass<T>(c: new () => T): Constructor<T>;
-    registerClass<T>(o: any, c: new () => T): Constructor<T>;
+    registerClass<T>(c: new (...args: any[]) => T): Constructor<T>;
+    registerClass<T>(o: any, c: new (...args: any[]) => T): Constructor<T>;
   }
   const GObject: GObject;
   export default GObject;
