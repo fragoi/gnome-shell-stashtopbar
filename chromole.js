@@ -2,7 +2,6 @@
 
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
-import Meta from 'gi://Meta';
 
 import * as Animations from './animations.js';
 import { idleAdd, idleRemove, setProperties, wire } from './utils.js';
