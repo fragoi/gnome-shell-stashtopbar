@@ -587,7 +587,7 @@ class Fade {
 
     const actor = this._actor;
 
-    //    actor.remove_transition('opacity');
+    // actor.remove_transition('opacity');
 
     if (this._active) {
       this._scaled.setActive(true);
@@ -596,15 +596,15 @@ class Fade {
     const delay = this._active ? 0 : 200;
     const opacity = this._active ? this._opacity : 0;
     const mode = Clutter.AnimationMode.LINEAR;
-    //    const mode = this._active
-    //      ? Clutter.AnimationMode.EASE_IN_QUAD
-    //      : Clutter.AnimationMode.EASE_OUT_QUAD;
+    // const mode = this._active
+    //   ? Clutter.AnimationMode.EASE_IN_QUAD
+    //   : Clutter.AnimationMode.EASE_OUT_QUAD;
 
     actor.save_easing_state();
     if (delay)
       actor.set_easing_delay(delay);
     actor.set_easing_mode(mode);
-    //    actor.set_easing_duration(300);
+    // actor.set_easing_duration(300);
     actor.opacity = opacity;
     actor.restore_easing_state();
 
@@ -634,7 +634,7 @@ class Fade {
 
     const active = this._active;
     actor.ease({
-      //      delay,
+      // delay,
       duration: 5000,
       opacity,
       mode,
@@ -714,7 +714,7 @@ class Slide {
     actor.save_easing_state();
     if (delay)
       actor.set_easing_delay(delay);
-    //      actor.set_easing_duration(10000);
+    // actor.set_easing_duration(10000);
     actor.translation_y = translationY;
     actor.restore_easing_state();
 
