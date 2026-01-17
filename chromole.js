@@ -17,8 +17,8 @@ const Signals = imports.signals;
  * @enum {number}
  */
 export const Edge = {
-  NONE: 0,
   AUTO: -1,
+  NONE: 0,
   TOP: 1,
   RIGHT: 2,
   BOTTOM: 4,
