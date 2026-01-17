@@ -10,7 +10,6 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import {
   Mole,
   TransformedCanvasConstraint,
-  AllocationCanvasConstraint,
   Edge,
   relativeEdge,
   boxToString
@@ -18,6 +17,7 @@ import {
 import { wire } from './utils.js';
 import { WindowOverlaps } from './wm.js';
 import { CHILD_ADDED, CHILD_REMOVED } from './compat.js';
+import { PaddingConstraint } from './constraints.js';
 
 const NAME = 'Stash Top Bar';
 const GSETTINGS_ID = 'org.gnome.shell.extensions.com-github-fragoi-stashtopbar';
@@ -63,8 +63,8 @@ export default class MyExtension extends Extension {
         new TransformedCanvasConstraint(mole.allocation)
       ),
       new ActorConstraint(
-        Main.overview._overview,
-        new AllocationCanvasConstraint(mole.allocation)
+        Main.overview.searchEntry,
+        new PaddingConstraint(mole.allocation)
       ),
       new ActiveMenuRelayout(mole.allocation),
 
