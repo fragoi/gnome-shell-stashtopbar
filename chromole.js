@@ -68,7 +68,7 @@ export function relativeEdge(boxA, boxB, factor = 0.3) {
  * @param {Box} boxA - the box to reduce
  * @param {Box} boxB - space to remove
  */
-function reduceBox(boxA, boxB) {
+export function reduceBox(boxA, boxB) {
   const edge = relativeEdge(boxA, boxB);
   switch (edge) {
     case Edge.TOP:
