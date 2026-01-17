@@ -38,6 +38,15 @@ export function boxToString({ x1, y1, x2, y2 }) {
 }
 
 /**
+ * @param {Box} boxA 
+ * @param {Box} boxB 
+ */
+export function boxOverlaps(boxA, boxB) {
+  return boxA.x1 < boxB.x2 && boxB.x1 < boxA.x2 &&
+    boxA.y1 < boxB.y2 && boxB.y1 < boxA.y2;
+}
+
+/**
  * @param {Box} boxA - the respect to box
  * @param {Box} boxB - the relative to box
  * @param factor - the relative factor
