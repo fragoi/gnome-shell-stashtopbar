@@ -40,7 +40,7 @@ jobs:
   #   continue-on-error: true
   #   if: ${{ needs.release.outputs.new_version }}
   #   steps:
-  #     - uses: fragoi/bash-actions@main
+  #     - uses: fragoi/bash-actions@v2
   #     - name: Notify debian repository
   #       env:
   #         NEW_VERSION: ${{ needs.release.outputs.new_version }}
