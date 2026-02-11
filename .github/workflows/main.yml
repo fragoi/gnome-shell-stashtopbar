@@ -23,7 +23,7 @@ jobs:
       new_version: ${{ steps.exportVersion.outputs.NEW_VERSION }}
     steps:
       - uses: actions/checkout@v6
-      - uses: fragoi/bash-actions@main
+      - uses: fragoi/bash-actions@v2
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
