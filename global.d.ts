@@ -38,3 +38,8 @@ declare module 'gi://GObject' {
   const GObject: GObject;
   export default GObject;
 }
+
+interface ExtensionComponent {
+  enable();
+  disable();
+}

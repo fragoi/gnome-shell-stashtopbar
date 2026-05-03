@@ -62,10 +62,10 @@ export default class MyExtension extends Extension {
         Main.messageTray,
         new TransformedCanvasConstraint(mole.allocation)
       ),
-      new ActorConstraint(
-        Main.overview.searchEntry,
+      new AfterStartup(new ActorConstraint(
+        Main.overview._overview.controls._searchEntryBin,
         new PaddingConstraint(mole.allocation)
-      ),
+      )),
       new ActiveMenuRelayout(mole.allocation),
 
       new TriggerOnMapped(actor, () => mole.sync()),
@@ -995,5 +995,38 @@ class WindowOverlapsActivation {
     const box = this._talloc.actor.get_allocation_box();
     _log && _log(`Set window overlaps box: ${boxToString(box)}`);
     this._windowOverlaps.setBox(box);
+  }
+}
+
+/**
+ * Enable a component after the startup animation.
+ */
+class AfterStartup {
+
+  /**
+   * @param {ExtensionComponent} component 
+   */
+  constructor(component) {
+    this._component = component;
+    this._wire = wire(Main.layoutManager, 'startup-complete', () => {
+      this._wire.disconnect();
+      this._component.enable();
+    });
+  }
+
+  enable() {
+    if (isStartupCompleted()) {
+      this._component.enable();
+    } else {
+      this._wire.connect();
+    }
+  }
+
+  disable() {
+    if (this._wire.isConnected()) {
+      this._wire.disconnect();
+    } else {
+      this._component.disable();
+    }
   }
 }
