@@ -1,5 +1,3 @@
-'use strict';
-
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 

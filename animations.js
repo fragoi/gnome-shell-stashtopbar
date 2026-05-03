@@ -1,5 +1,3 @@
-'use strict';
-
 /*
  * Some notes recollected regarding activations:
  * 

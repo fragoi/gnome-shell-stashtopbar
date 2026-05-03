@@ -1,5 +1,3 @@
-'use strict';
-
 import { setProperties, wire } from './utils.js';
 import { CHILD_ADDED, get_window_actors } from './compat.js';
 

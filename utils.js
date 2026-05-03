@@ -1,5 +1,3 @@
-'use strict';
-
 import GLib from 'gi://GLib';
 
 /**
