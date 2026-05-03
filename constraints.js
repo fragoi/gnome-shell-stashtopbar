@@ -9,7 +9,7 @@ import {
   boxToString,
   boxOverlaps
 } from './chromole.js';
-import { wire } from './utils.js';
+import { idleAdd, idleRemove, wire } from './utils.js';
 
 /**
  * @import { Box, TransformedAllocation } from './chromole'
@@ -42,6 +42,7 @@ export const PaddingConstraint = GObject.registerClass(
 
       this._edge = Edge.NONE;
       this._padding = 0;
+      this._idleId = 0;
 
       this._wire = wire(
         talloc,
@@ -52,7 +53,7 @@ export const PaddingConstraint = GObject.registerClass(
       this._actorWire = wire(
         null,
         'notify::allocation',
-        this._updateBox.bind(this)
+        this._allocationChanged.bind(this)
       );
     }
 
@@ -107,6 +108,17 @@ export const PaddingConstraint = GObject.registerClass(
       if (this._edge & Edge.RIGHT) allocation.x2 += this._padding;
       if (this._edge & Edge.TOP) allocation.y1 -= this._padding;
       if (this._edge & Edge.BOTTOM) allocation.y2 += this._padding;
+    }
+
+    _allocationChanged() {
+      _log && _log(`Allocation changed, has idle: ${!!this._idleId}`);
+      if (this._idleId)
+        return;
+
+      this._idleId = idleAdd(() => {
+        this._idleId = 0;
+        this._updateBox();
+      });
     }
 
     _updateBox() {
@@ -170,6 +182,10 @@ export const PaddingConstraint = GObject.registerClass(
     _reset() {
       this._edge = Edge.NONE;
       this._padding = 0;
+      if (this._idleId) {
+        idleRemove(this._idleId);
+        this._idleId = 0;
+      }
     }
   }
 );
