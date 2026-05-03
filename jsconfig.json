@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2019",
-    "checkJs": true
+    "checkJs": true,
+    "strict": false
   }
 }
