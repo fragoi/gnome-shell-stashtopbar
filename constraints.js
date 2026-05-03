@@ -114,13 +114,10 @@ export const PaddingConstraint = GObject.registerClass(
       if (!actor)
         return;
 
-      _log && _log(`[PaddingConstraint] update box, `
-        + `actor has allocation: ${actor.has_allocation()}, `
-        + `is mapped: ${actor.mapped}`
-      );
-
-      if (!actor.has_allocation())
+      if (!actor.has_allocation()) {
+        _log && _log(`[PaddingConstraint] update box, actor has no allocation`);
         return;
+      }
 
       const actorBox = transformedBox(actor);
 
@@ -153,12 +150,6 @@ export const PaddingConstraint = GObject.registerClass(
           break;
       }
 
-      _log && _log(`[PaddingConstraint] update box, `
-        + `actor box: ${boxToString(actorBox)}, `
-        + `talloc box: ${boxToString(tallocBox)}, `
-        + `edge: ${edge}, padding: ${padding}`
-      );
-
       const shouldRelayout = this._edge != edge || this._padding != padding;
 
       this._edge = edge;
@@ -167,6 +158,13 @@ export const PaddingConstraint = GObject.registerClass(
       if (shouldRelayout) {
         actor.queue_relayout();
       }
+
+      _log && _log(`[PaddingConstraint] update box, `
+        + `actor box: ${boxToString(actorBox)}, `
+        + `talloc box: ${boxToString(tallocBox)}, `
+        + `edge: ${edge}, padding: ${padding}, `
+        + `relayout: ${shouldRelayout}`
+      );
     }
 
     _reset() {
